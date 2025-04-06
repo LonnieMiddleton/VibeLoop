@@ -18,6 +18,10 @@ application {
 }
 
 dependencies {
+    // JSON-P API for parsing JSON
+    implementation 'javax.json:javax.json-api:1.1.4'
+    implementation 'org.glassfish:javax.json:1.1.4'
+    
     // Additional dependencies can be added here if needed
 }
 
