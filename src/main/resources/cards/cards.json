@@ -2,70 +2,70 @@
   "push_through": {
     "name": "Push Through",
     "description": "Forcefully move forward, ignoring minor obstacles.",
-    "type": "action",
+    "type": "strength",
     "cost": 1,
     "effect": "move_forward_ignore_obstacles"
   },
   "quick_strike": {
     "name": "Quick Strike",
     "description": "A fast attack that catches enemies off guard.",
-    "type": "attack",
+    "type": "speed",
     "cost": 2,
     "effect": "attack_quick"
   },
   "shield_up": {
     "name": "Shield Up",
     "description": "Raise your shield to block incoming damage.",
-    "type": "defense",
+    "type": "tech",
     "cost": 1,
     "effect": "defend_block"
   },
   "repair_kit": {
     "name": "Repair Kit",
     "description": "Use tools to repair damaged equipment.",
-    "type": "utility",
+    "type": "tech",
     "cost": 2,
     "effect": "repair_equipment"
   },
   "healing_salve": {
     "name": "Healing Salve",
     "description": "Apply medicinal herbs to heal wounds.",
-    "type": "healing",
+    "type": "tech",
     "cost": 2,
     "effect": "heal_wounds"
   },
   "tactical_maneuver": {
     "name": "Tactical Maneuver",
     "description": "Reposition yourself for strategic advantage.",
-    "type": "movement",
+    "type": "speed",
     "cost": 1,
     "effect": "reposition"
   },
   "improvised_explosive": {
     "name": "Improvised Explosive",
     "description": "Quickly craft an explosive device from available materials.",
-    "type": "attack",
+    "type": "tech",
     "cost": 3,
     "effect": "area_damage"
   },
   "analyze_weakness": {
     "name": "Analyze Weakness",
     "description": "Carefully observe the target to find vulnerabilities.",
-    "type": "utility",
+    "type": "tech",
     "cost": 1,
     "effect": "reveal_weakness"
   },
   "evasive_maneuvers": {
     "name": "Evasive Maneuvers",
     "description": "Quickly dodge to avoid incoming attacks.",
-    "type": "defense",
+    "type": "speed",
     "cost": 2,
     "effect": "dodge_attack"
   },
   "adrenaline_rush": {
     "name": "Adrenaline Rush",
     "description": "A surge of energy allowing for extraordinary feats.",
-    "type": "boost",
+    "type": "strength",
     "cost": 2,
     "effect": "boost_next_action"
   }

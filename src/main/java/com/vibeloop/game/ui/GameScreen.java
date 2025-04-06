@@ -3,11 +3,14 @@ package com.vibeloop.game.ui;
 import com.vibeloop.game.model.Card;
 import com.vibeloop.game.model.Player;
 import com.vibeloop.game.model.Character;
+import com.vibeloop.game.model.ObstacleCard;
+import com.vibeloop.game.model.ObstacleDeck;
 import com.vibeloop.game.service.ObstacleService;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
@@ -17,6 +20,7 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -24,7 +28,11 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Main game screen showing player profiles, decks, discard piles, and hands.
@@ -33,6 +41,10 @@ public class GameScreen {
     private final Stage stage;
     private final List<Player> players;
     private final ObstacleService obstacleService;
+    private ObstacleDeck obstacleDeck;
+    private ObstacleCard currentObstacle;
+    private Map<Player, Card> playedCards;
+    private int currentPlayerIndex;
     
     // UI constants
     private static final double PROFILE_WIDTH = 80;
@@ -40,10 +52,19 @@ public class GameScreen {
     private static final double CARD_HEIGHT = 63; // Reduced by ~30%
     private static final double CARD_SPACING = 3;
     
+    // UI elements that need to be updated
+    private VBox centerPanel;
+    private Map<Player, FlowPane> playerHandPanes;
+    private Map<Player, Label> playerStatusLabels;
+    
     public GameScreen(Stage stage, List<Player> players, ObstacleService obstacleService) {
         this.stage = stage;
         this.players = players;
         this.obstacleService = obstacleService;
+        this.obstacleDeck = obstacleService.createObstacleDeck();
+        this.playedCards = new HashMap<>();
+        this.playerHandPanes = new HashMap<>();
+        this.playerStatusLabels = new HashMap<>();
     }
     
     /**
@@ -61,15 +82,10 @@ public class GameScreen {
         VBox playersPanel = createPlayersPanel();
         root.setLeft(playersPanel);
         
-        // Create center panel for game board/obstacles (will be implemented later)
-        VBox centerPanel = new VBox(10);
+        // Create center panel for game board/obstacles
+        centerPanel = new VBox(10);
         centerPanel.setAlignment(Pos.CENTER);
         centerPanel.setPadding(new Insets(10));
-        
-        Label centerLabel = new Label("Game Board");
-        centerLabel.setFont(Font.font("System", FontWeight.BOLD, 20));
-        centerLabel.setTextFill(Color.WHITE);
-        centerPanel.getChildren().add(centerLabel);
         
         root.setCenter(centerPanel);
         
@@ -77,6 +93,10 @@ public class GameScreen {
         Scene scene = new Scene(root, 1024, 768);
         stage.setTitle("VibeLoop Game");
         stage.setScene(scene);
+        stage.show();
+        
+        // Start the game
+        startGame();
     }
     
     /**
@@ -114,10 +134,70 @@ public class GameScreen {
         playerSection.setPadding(new Insets(8));
         playerSection.setStyle("-fx-background-color: #2d4b6e; -fx-background-radius: 8;");
         
-        // Player name and character
-        Label nameLabel = new Label(player.getName() + " - " + player.getSelectedCharacter().getName());
+        // Create health bar as background for character name
+        double healthPercentage = (double) player.getCurrentHealth() / player.getSelectedCharacter().getHealth();
+        
+        // Create health bar container
+        HBox healthBarContainer = new HBox();
+        healthBarContainer.setPrefHeight(24);
+        healthBarContainer.setStyle("-fx-background-color: #1a3245; -fx-background-radius: 4;");
+        
+        // Create health bar (green portion)
+        Rectangle healthBar = new Rectangle();
+        healthBar.setHeight(24);
+        healthBar.setWidth(healthPercentage * (PROFILE_WIDTH + 240 - 16)); // Account for padding
+        
+        // Set color based on health percentage
+        if (healthPercentage <= 0.3) {
+            healthBar.setFill(Color.rgb(200, 50, 50)); // Red
+        } else if (healthPercentage <= 0.6) {
+            healthBar.setFill(Color.rgb(200, 150, 50)); // Orange
+        } else {
+            healthBar.setFill(Color.rgb(50, 180, 50)); // Green
+        }
+        
+        // Add health bar to container
+        healthBarContainer.getChildren().add(healthBar);
+        
+        // Player name and character on top of health bar
+        Label nameLabel = new Label(player.getName() + " - " + player.getSelectedCharacter().getName() + 
+                                    " (" + player.getCurrentHealth() + "/" + player.getSelectedCharacter().getHealth() + ")");
         nameLabel.setFont(Font.font("System", FontWeight.BOLD, 14));
         nameLabel.setTextFill(Color.WHITE);
+        nameLabel.setTranslateX(8); // Add some padding
+        nameLabel.setTranslateY(-22); // Move up to overlay the health bar
+        
+        // Stack health bar and label
+        VBox nameContainer = new VBox();
+        nameContainer.getChildren().addAll(healthBarContainer, nameLabel);
+        
+        // Update health bar when health changes
+        player.currentHealthProperty().addListener((obs, oldVal, newVal) -> {
+            // Update health percentage
+            double newHealthPercentage = (double) newVal.intValue() / player.getSelectedCharacter().getHealth();
+            
+            // Update health bar width
+            healthBar.setWidth(newHealthPercentage * (PROFILE_WIDTH + 240 - 16));
+            
+            // Update health bar color
+            if (newHealthPercentage <= 0.3) {
+                healthBar.setFill(Color.rgb(200, 50, 50)); // Red
+            } else if (newHealthPercentage <= 0.6) {
+                healthBar.setFill(Color.rgb(200, 150, 50)); // Orange
+            } else {
+                healthBar.setFill(Color.rgb(50, 180, 50)); // Green
+            }
+            
+            // Update name label
+            nameLabel.setText(player.getName() + " - " + player.getSelectedCharacter().getName() + 
+                             " (" + newVal + "/" + player.getSelectedCharacter().getHealth() + ")");
+        });
+        
+        // Status label for player
+        Label statusLabel = new Label("Ready");
+        statusLabel.setFont(Font.font("System", FontWeight.NORMAL, 12));
+        statusLabel.setTextFill(Color.LIGHTGREEN);
+        playerStatusLabels.put(player, statusLabel);
         
         // Main row with character image and hand
         HBox mainRow = new HBox(10);
@@ -140,61 +220,9 @@ public class GameScreen {
         handPane.setHgap(CARD_SPACING);
         handPane.setVgap(CARD_SPACING);
         handPane.setPrefWidth(PROFILE_WIDTH + 140);
+        playerHandPanes.put(player, handPane);
         
-        for (Card card : player.getDeck().getHand()) {
-            ImageView cardImage;
-            String cardId = card.getId();
-            
-            // Try all possible paths for the card image
-            String[] possiblePaths = {
-                "/cards/" + cardId + ".jpg",
-                "/cards/skills/" + cardId + ".jpg", 
-                "/cards/tools/" + cardId + ".jpg"
-            };
-            
-            boolean imageLoaded = false;
-            for (String path : possiblePaths) {
-                try {
-                    Image image = new Image(getClass().getResourceAsStream(path));
-                    cardImage = new ImageView(image);
-                    cardImage.setFitWidth(CARD_WIDTH);
-                    cardImage.setFitHeight(CARD_HEIGHT);
-                    
-                    // Create tooltip
-                    Tooltip tooltip = createCardTooltip(card);
-                    tooltip.setShowDelay(Duration.millis(50));
-                    Tooltip.install(cardImage, tooltip);
-                    
-                    handPane.getChildren().add(cardImage);
-                    imageLoaded = true;
-                    System.out.println("Loaded image for card: " + cardId + " from path: " + path);
-                    break;
-                } catch (Exception e) {
-                    // Try next path
-                    continue;
-                }
-            }
-            
-            // If no image was loaded, use card back
-            if (!imageLoaded) {
-                System.out.println("Could not load image for card: " + cardId + " - using card back");
-                try {
-                    Image backImage = new Image(getClass().getResourceAsStream("/cards/card_back.jpg"));
-                    cardImage = new ImageView(backImage);
-                    cardImage.setFitWidth(CARD_WIDTH);
-                    cardImage.setFitHeight(CARD_HEIGHT);
-                    
-                    // Create tooltip
-                    Tooltip tooltip = createCardTooltip(card);
-                    tooltip.setShowDelay(Duration.millis(50));
-                    Tooltip.install(cardImage, tooltip);
-                    
-                    handPane.getChildren().add(cardImage);
-                } catch (Exception e) {
-                    System.err.println("Error loading card back image: " + e.getMessage());
-                }
-            }
-        }
+        updatePlayerHand(player);
         
         handBox.getChildren().add(handPane);
         
@@ -241,9 +269,140 @@ public class GameScreen {
         deckRow.getChildren().addAll(drawPileBox, discardPileBox);
         
         // Add all sections
-        playerSection.getChildren().addAll(nameLabel, mainRow, deckRow);
+        playerSection.getChildren().addAll(nameContainer, statusLabel, mainRow, deckRow);
         
         return playerSection;
+    }
+    
+    /**
+     * Updates the displayed hand for a player.
+     */
+    private void updatePlayerHand(Player player) {
+        FlowPane handPane = playerHandPanes.get(player);
+        handPane.getChildren().clear();
+        
+        for (Card card : player.getDeck().getHand()) {
+            String cardId = card.getId();
+            
+            // Create a StackPane to hold the card image and stat indicator
+            javafx.scene.layout.StackPane cardPane = new javafx.scene.layout.StackPane();
+            cardPane.setAlignment(Pos.BOTTOM_RIGHT);
+            
+            // Determine the associated stat and color - ensure all cards use one of the three main stats
+            String cardType = card.getType().toLowerCase();
+            Color statColor = Color.WHITE;
+            String statLetter = "";
+            
+            switch (cardType) {
+                case "strength":
+                    statColor = Color.rgb(220, 100, 100);
+                    statLetter = "S";
+                    break;
+                case "speed":
+                    statColor = Color.rgb(100, 180, 220);
+                    statLetter = "SP";
+                    break;
+                case "tech":
+                    statColor = Color.rgb(100, 220, 100);
+                    statLetter = "T";
+                    break;
+                default:
+                    // Automatically assign to strength as default
+                    statColor = Color.rgb(220, 100, 100);
+                    statLetter = "S";
+                    break;
+            }
+            
+            // Try all possible paths for the card image
+            String[] possiblePaths = {
+                "/cards/" + cardId + ".jpg",
+                "/cards/skills/" + cardId + ".jpg", 
+                "/cards/tools/" + cardId + ".jpg"
+            };
+            
+            boolean imageLoaded = false;
+            for (String path : possiblePaths) {
+                try {
+                    Image image = new Image(getClass().getResourceAsStream(path));
+                    ImageView cardImage = new ImageView(image);
+                    cardImage.setFitWidth(CARD_WIDTH);
+                    cardImage.setFitHeight(CARD_HEIGHT);
+                    
+                    // Create stat indicator
+                    javafx.scene.layout.StackPane indicator = new javafx.scene.layout.StackPane();
+                    Circle indicatorBg = new Circle(10);
+                    indicatorBg.setFill(statColor);
+                    indicatorBg.setStroke(Color.WHITE);
+                    indicatorBg.setStrokeWidth(1);
+                    
+                    Text indicatorText = new Text(statLetter);
+                    indicatorText.setFill(Color.WHITE);
+                    indicatorText.setFont(Font.font("System", FontWeight.BOLD, 9));
+                    
+                    indicator.getChildren().addAll(indicatorBg, indicatorText);
+                    
+                    // Create tooltip
+                    Tooltip tooltip = createCardTooltip(card);
+                    tooltip.setShowDelay(Duration.millis(50));
+                    Tooltip.install(cardPane, tooltip);
+                    
+                    // Add click handler for playing cards
+                    if (currentPlayerIndex == players.indexOf(player) && currentObstacle != null) {
+                        cardPane.setOnMouseClicked(event -> playCard(player, card));
+                        cardPane.setStyle("-fx-cursor: hand;");
+                    }
+                    
+                    // Add to stack pane
+                    cardPane.getChildren().addAll(cardImage, indicator);
+                    handPane.getChildren().add(cardPane);
+                    imageLoaded = true;
+                    break;
+                } catch (Exception e) {
+                    // Try next path
+                    continue;
+                }
+            }
+            
+            // If no image was loaded, use card back
+            if (!imageLoaded) {
+                try {
+                    Image backImage = new Image(getClass().getResourceAsStream("/cards/card_back.jpg"));
+                    ImageView cardImage = new ImageView(backImage);
+                    cardImage.setFitWidth(CARD_WIDTH);
+                    cardImage.setFitHeight(CARD_HEIGHT);
+                    
+                    // Create stat indicator
+                    javafx.scene.layout.StackPane indicator = new javafx.scene.layout.StackPane();
+                    Circle indicatorBg = new Circle(10);
+                    indicatorBg.setFill(statColor);
+                    indicatorBg.setStroke(Color.WHITE);
+                    indicatorBg.setStrokeWidth(1);
+                    
+                    Text indicatorText = new Text(statLetter);
+                    indicatorText.setFill(Color.WHITE);
+                    indicatorText.setFont(Font.font("System", FontWeight.BOLD, 9));
+                    
+                    indicator.getChildren().addAll(indicatorBg, indicatorText);
+                    
+                    // Create tooltip
+                    Tooltip tooltip = createCardTooltip(card);
+                    tooltip.setShowDelay(Duration.millis(50));
+                    Tooltip.install(cardPane, tooltip);
+                    
+                    // Add click handler for playing cards
+                    if (currentPlayerIndex == players.indexOf(player) && currentObstacle != null) {
+                        cardPane.setOnMouseClicked(event -> playCard(player, card));
+                        cardPane.setStyle("-fx-cursor: hand;");
+                    }
+                    
+                    // Add to stack pane
+                    cardPane.getChildren().addAll(cardImage, indicator);
+                    handPane.getChildren().add(cardPane);
+                } catch (Exception e) {
+                    System.err.println("Error loading card back image: " + e.getMessage());
+                }
+            }
+        }
     }
     
     /**
@@ -309,9 +468,33 @@ public class GameScreen {
         nameText.setFill(Color.WHITE);
         nameText.setFont(Font.font("System", FontWeight.BOLD, 14));
         
-        Text typeText = new Text("Type: " + card.getType());
-        typeText.setFill(Color.WHITE);
-        typeText.setFont(Font.font("System", 12));
+        String cardType = card.getType().toLowerCase();
+        String associatedStat = "";
+        Color statColor = Color.WHITE;
+        
+        switch (cardType) {
+            case "strength":
+                associatedStat = "Strength";
+                statColor = Color.rgb(220, 100, 100);
+                break;
+            case "speed":
+                associatedStat = "Speed";
+                statColor = Color.rgb(100, 180, 220);
+                break;
+            case "tech":
+                associatedStat = "Tech";
+                statColor = Color.rgb(100, 220, 100);
+                break;
+            default:
+                // Default to strength for any other type
+                associatedStat = "Strength";
+                statColor = Color.rgb(220, 100, 100);
+                break;
+        }
+        
+        Text typeText = new Text("Type: " + card.getType() + " (Uses " + associatedStat + ")");
+        typeText.setFill(statColor);
+        typeText.setFont(Font.font("System", FontWeight.BOLD, 12));
         
         Text costText = new Text("Cost: " + card.getCost());
         costText.setFill(Color.WHITE);
@@ -333,5 +516,539 @@ public class GameScreen {
         tooltip.setMaxWidth(280);
         
         return tooltip;
+    }
+    
+    /**
+     * Starts the game by shuffling the obstacle deck and presenting the first obstacle.
+     */
+    private void startGame() {
+        // Clear any existing obstacles
+        obstacleDeck.resetDeck();
+        
+        // Shuffle the deck
+        obstacleDeck.shuffle();
+        
+        // Start with the first player
+        currentPlayerIndex = 0;
+        
+        // Present the first obstacle
+        presentNextObstacle();
+    }
+    
+    /**
+     * Presents the next obstacle card to the players.
+     */
+    private void presentNextObstacle() {
+        // Clear any played cards from previous round
+        playedCards.clear();
+        
+        // Draw the next obstacle
+        currentObstacle = obstacleDeck.drawObstacle();
+        
+        if (currentObstacle == null) {
+            // No more obstacles, game is over with success
+            showGameResult("Victory! All obstacles have been overcome!");
+            return;
+        }
+        
+        // Reset player status
+        for (Player player : players) {
+            playerStatusLabels.get(player).setText("Waiting");
+            playerStatusLabels.get(player).setTextFill(Color.YELLOW);
+        }
+        
+        // Set first player as active
+        currentPlayerIndex = 0;
+        playerStatusLabels.get(players.get(currentPlayerIndex)).setText("Your Turn");
+        playerStatusLabels.get(players.get(currentPlayerIndex)).setTextFill(Color.LIGHTGREEN);
+        
+        // Update all player hands to show clickable cards for the active player
+        for (Player player : players) {
+            updatePlayerHand(player);
+        }
+        
+        // Create the obstacle display
+        updateObstacleDisplay();
+    }
+    
+    /**
+     * Updates the center panel to display the current obstacle.
+     */
+    private void updateObstacleDisplay() {
+        centerPanel.getChildren().clear();
+        
+        // Obstacle title
+        Label titleLabel = new Label("Current Obstacle");
+        titleLabel.setFont(Font.font("System", FontWeight.BOLD, 20));
+        titleLabel.setTextFill(Color.WHITE);
+        
+        // Obstacle card display
+        VBox obstacleBox = new VBox(10);
+        obstacleBox.setAlignment(Pos.CENTER);
+        obstacleBox.setPadding(new Insets(10));
+        obstacleBox.setStyle("-fx-background-color: #2d4b6e; -fx-background-radius: 8;");
+        
+        // Obstacle image
+        ImageView obstacleImage;
+        try {
+            Image image = new Image(getClass().getResourceAsStream(currentObstacle.getImagePath()));
+            obstacleImage = new ImageView(image);
+            obstacleImage.setFitWidth(CARD_WIDTH * 2);
+            obstacleImage.setFitHeight(CARD_HEIGHT * 2);
+            obstacleBox.getChildren().add(obstacleImage);
+        } catch (Exception e) {
+            // If image can't be loaded, use a placeholder
+            Rectangle placeholder = new Rectangle(CARD_WIDTH * 2, CARD_HEIGHT * 2);
+            placeholder.setFill(Color.GRAY.deriveColor(0, 1, 1, 0.3));
+            placeholder.setStroke(Color.WHITE);
+            obstacleBox.getChildren().add(placeholder);
+            System.err.println("Error loading obstacle image: " + e.getMessage());
+        }
+        
+        // Obstacle details
+        Label nameLabel = new Label(currentObstacle.getName());
+        nameLabel.setFont(Font.font("System", FontWeight.BOLD, 16));
+        nameLabel.setTextFill(Color.WHITE);
+        
+        Label difficultyLabel = new Label("Difficulty: " + currentObstacle.getDifficulty());
+        difficultyLabel.setFont(Font.font("System", 14));
+        difficultyLabel.setTextFill(Color.WHITE);
+        
+        Label skillsLabel = new Label("Required Skills: " + String.join(", ", currentObstacle.getRequiredSkills()));
+        skillsLabel.setFont(Font.font("System", 14));
+        skillsLabel.setTextFill(Color.WHITE);
+        
+        Label descriptionLabel = new Label(currentObstacle.getDescription());
+        descriptionLabel.setFont(Font.font("System", 14));
+        descriptionLabel.setTextFill(Color.WHITE);
+        descriptionLabel.setWrapText(true);
+        descriptionLabel.setMaxWidth(300);
+        
+        obstacleBox.getChildren().addAll(nameLabel, difficultyLabel, skillsLabel, descriptionLabel);
+        
+        // Add played cards section
+        VBox playedCardsBox = new VBox(5);
+        playedCardsBox.setAlignment(Pos.CENTER);
+        
+        Label playedCardsLabel = new Label("Played Cards");
+        playedCardsLabel.setFont(Font.font("System", FontWeight.BOLD, 16));
+        playedCardsLabel.setTextFill(Color.WHITE);
+        
+        FlowPane playedCardsPane = new FlowPane();
+        playedCardsPane.setHgap(CARD_SPACING * 2);
+        playedCardsPane.setVgap(CARD_SPACING * 2);
+        playedCardsPane.setAlignment(Pos.CENTER);
+        
+        // Add played cards if any
+        for (Map.Entry<Player, Card> entry : playedCards.entrySet()) {
+            Player player = entry.getKey();
+            Card card = entry.getValue();
+            
+            VBox cardBox = new VBox(2);
+            cardBox.setAlignment(Pos.CENTER);
+            
+            // Card image or "Skipped" indicator
+            if (card != null) {
+                // Determine the associated stat and color
+                String cardType = card.getType().toLowerCase();
+                Color statColor = Color.WHITE;
+                String statLetter = "";
+                
+                switch (cardType) {
+                    case "strength":
+                        statColor = Color.rgb(220, 100, 100);
+                        statLetter = "S";
+                        break;
+                    case "speed":
+                        statColor = Color.rgb(100, 180, 220);
+                        statLetter = "SP";
+                        break;
+                    case "tech":
+                        statColor = Color.rgb(100, 220, 100);
+                        statLetter = "T";
+                        break;
+                    default:
+                        // Default to strength
+                        statColor = Color.rgb(220, 100, 100);
+                        statLetter = "S";
+                        break;
+                }
+                
+                // Card image
+                javafx.scene.layout.StackPane cardPane = new javafx.scene.layout.StackPane();
+                cardPane.setAlignment(Pos.BOTTOM_RIGHT);
+                
+                try {
+                    String[] possiblePaths = {
+                        "/cards/" + card.getId() + ".jpg",
+                        "/cards/skills/" + card.getId() + ".jpg", 
+                        "/cards/tools/" + card.getId() + ".jpg"
+                    };
+                    
+                    boolean imageLoaded = false;
+                    for (String path : possiblePaths) {
+                        try {
+                            Image image = new Image(getClass().getResourceAsStream(path));
+                            ImageView cardImage = new ImageView(image);
+                            cardImage.setFitWidth(CARD_WIDTH * 1.5);
+                            cardImage.setFitHeight(CARD_HEIGHT * 1.5);
+                            
+                            // Create stat indicator
+                            javafx.scene.layout.StackPane indicator = new javafx.scene.layout.StackPane();
+                            Circle indicatorBg = new Circle(15); // Larger for better visibility
+                            indicatorBg.setFill(statColor);
+                            indicatorBg.setStroke(Color.WHITE);
+                            indicatorBg.setStrokeWidth(1.5);
+                            
+                            Text indicatorText = new Text(statLetter);
+                            indicatorText.setFill(Color.WHITE);
+                            indicatorText.setFont(Font.font("System", FontWeight.BOLD, 12));
+                            
+                            indicator.getChildren().addAll(indicatorBg, indicatorText);
+                            
+                            // Create tooltip
+                            Tooltip tooltip = createCardTooltip(card);
+                            Tooltip.install(cardPane, tooltip);
+                            
+                            // Add to stack pane
+                            cardPane.getChildren().addAll(cardImage, indicator);
+                            imageLoaded = true;
+                            break;
+                        } catch (Exception e) {
+                            continue;
+                        }
+                    }
+                    
+                    if (!imageLoaded) {
+                        Rectangle placeholder = new Rectangle(CARD_WIDTH * 1.5, CARD_HEIGHT * 1.5);
+                        placeholder.setFill(Color.GRAY.deriveColor(0, 1, 1, 0.3));
+                        placeholder.setStroke(Color.WHITE);
+                        
+                        // Create stat indicator
+                        javafx.scene.layout.StackPane indicator = new javafx.scene.layout.StackPane();
+                        Circle indicatorBg = new Circle(15);
+                        indicatorBg.setFill(statColor);
+                        indicatorBg.setStroke(Color.WHITE);
+                        indicatorBg.setStrokeWidth(1.5);
+                        
+                        Text indicatorText = new Text(statLetter);
+                        indicatorText.setFill(Color.WHITE);
+                        indicatorText.setFont(Font.font("System", FontWeight.BOLD, 12));
+                        
+                        indicator.getChildren().addAll(indicatorBg, indicatorText);
+                        
+                        cardPane.getChildren().addAll(placeholder, indicator);
+                    }
+                    
+                    cardBox.getChildren().add(cardPane);
+                } catch (Exception e) {
+                    System.err.println("Error loading card image: " + e.getMessage());
+                    Rectangle placeholder = new Rectangle(CARD_WIDTH * 1.5, CARD_HEIGHT * 1.5);
+                    placeholder.setFill(Color.GRAY.deriveColor(0, 1, 1, 0.3));
+                    placeholder.setStroke(Color.WHITE);
+                    cardBox.getChildren().add(placeholder);
+                }
+            } else {
+                // Skipped indicator
+                Rectangle skipRect = new Rectangle(CARD_WIDTH * 1.5, CARD_HEIGHT * 1.5);
+                skipRect.setFill(Color.GRAY.deriveColor(0, 1, 1, 0.2));
+                skipRect.setStroke(Color.WHITE);
+                
+                Text skipText = new Text("SKIPPED");
+                skipText.setFill(Color.WHITE);
+                skipText.setFont(Font.font("System", FontWeight.BOLD, 14));
+                
+                // Stack the text on top of the rectangle
+                javafx.scene.layout.StackPane skipPane = new javafx.scene.layout.StackPane();
+                skipPane.getChildren().addAll(skipRect, skipText);
+                
+                cardBox.getChildren().add(skipPane);
+            }
+            
+            // Player name
+            Label playerLabel = new Label(player.getName());
+            playerLabel.setTextFill(Color.WHITE);
+            cardBox.getChildren().add(playerLabel);
+            
+            playedCardsPane.getChildren().add(cardBox);
+        }
+        
+        playedCardsBox.getChildren().addAll(playedCardsLabel, playedCardsPane);
+        
+        // Add "Skip" button for current player
+        Button skipButton = new Button("Skip (Play No Card)");
+        skipButton.setOnAction(event -> skipTurn(players.get(currentPlayerIndex)));
+        
+        // Add everything to the center panel
+        centerPanel.getChildren().addAll(titleLabel, obstacleBox, playedCardsBox, skipButton);
+    }
+    
+    /**
+     * Handles a player playing a card.
+     */
+    private void playCard(Player player, Card card) {
+        if (currentPlayerIndex != players.indexOf(player)) {
+            return; // Not this player's turn
+        }
+        
+        // Play the card
+        player.getDeck().playCard(card);
+        playedCards.put(player, card);
+        
+        // Move to next player
+        advanceToNextPlayer();
+    }
+    
+    /**
+     * Handles a player skipping their turn.
+     */
+    private void skipTurn(Player player) {
+        if (currentPlayerIndex != players.indexOf(player)) {
+            return; // Not this player's turn
+        }
+        
+        // Mark as skipped (no card played)
+        playedCards.put(player, null);
+        
+        // Move to next player
+        advanceToNextPlayer();
+    }
+    
+    /**
+     * Advances to the next player or resolves the obstacle if all players have taken their turn.
+     */
+    private void advanceToNextPlayer() {
+        // Update current player status to "Done"
+        playerStatusLabels.get(players.get(currentPlayerIndex)).setText("Done");
+        playerStatusLabels.get(players.get(currentPlayerIndex)).setTextFill(Color.LIGHTBLUE);
+        
+        // Move to next player
+        currentPlayerIndex++;
+        
+        // Check if all players have played
+        if (currentPlayerIndex >= players.size()) {
+            // All players have played, resolve the obstacle
+            resolveObstacle();
+        } else {
+            // Update next player status
+            playerStatusLabels.get(players.get(currentPlayerIndex)).setText("Your Turn");
+            playerStatusLabels.get(players.get(currentPlayerIndex)).setTextFill(Color.LIGHTGREEN);
+            
+            // Update player hands to show clickable cards for current player
+            for (Player player : players) {
+                updatePlayerHand(player);
+            }
+            
+            // Update the obstacle display
+            updateObstacleDisplay();
+        }
+    }
+    
+    /**
+     * Resolves the current obstacle by calculating total skill vs. difficulty.
+     */
+    private void resolveObstacle() {
+        // Calculate total skill against the obstacle
+        int totalSkill = 0;
+        String[] requiredSkills = currentObstacle.getRequiredSkills();
+        StringBuilder skillBreakdown = new StringBuilder();
+        
+        // For each player who played a card, check if the card type matches a required skill
+        for (Map.Entry<Player, Card> entry : playedCards.entrySet()) {
+            Player player = entry.getKey();
+            Card card = entry.getValue();
+            Character character = player.getSelectedCharacter();
+            
+            if (card != null) {
+                // Check if the card type matches a required skill
+                String cardType = card.getType().toLowerCase();
+                boolean matchesSkill = false;
+                
+                for (String skill : requiredSkills) {
+                    if (cardType.equals(skill.toLowerCase())) {
+                        matchesSkill = true;
+                        break;
+                    }
+                }
+                
+                int contributedSkill = 0;
+                
+                if (matchesSkill) {
+                    // Card type matches a required skill, add the character's corresponding stat
+                    switch (cardType) {
+                        case "strength":
+                            contributedSkill = character.getStrength();
+                            skillBreakdown.append(player.getName()).append(": ").append(card.getName())
+                                .append(" (Strength ").append(character.getStrength()).append(")\n");
+                            break;
+                        case "speed":
+                            contributedSkill = character.getSpeed();
+                            skillBreakdown.append(player.getName()).append(": ").append(card.getName())
+                                .append(" (Speed ").append(character.getSpeed()).append(")\n");
+                            break;
+                        case "tech":
+                            contributedSkill = character.getTech();
+                            skillBreakdown.append(player.getName()).append(": ").append(card.getName())
+                                .append(" (Tech ").append(character.getTech()).append(")\n");
+                            break;
+                        default:
+                            // Default to strength for any other type
+                            contributedSkill = character.getStrength();
+                            skillBreakdown.append(player.getName()).append(": ").append(card.getName())
+                                .append(" (Strength ").append(character.getStrength()).append(")\n");
+                            break;
+                    }
+                } else {
+                    // Card doesn't match a required skill, add base value of 1
+                    contributedSkill = 1;
+                    skillBreakdown.append(player.getName()).append(": ").append(card.getName())
+                        .append(" (Non-matching - base value 1)\n");
+                }
+                
+                totalSkill += contributedSkill;
+            } else {
+                // Player skipped
+                skillBreakdown.append(player.getName()).append(": Skipped (0)\n");
+            }
+        }
+        
+        // Compare total skill to obstacle difficulty
+        int obstacleDifficulty = currentObstacle.getDifficulty();
+        
+        if (totalSkill >= obstacleDifficulty) {
+            // Success! Players overcome the obstacle
+            obstacleDeck.defeatObstacle(currentObstacle);
+            showObstacleResult("Success! Obstacle Overcome", 
+                              "Total Skill: " + totalSkill + " vs. Difficulty: " + obstacleDifficulty + "\n\n" +
+                              skillBreakdown.toString(),
+                              true);
+        } else {
+            // Failure - players take damage
+            int damage = obstacleDifficulty - totalSkill;
+            distributeAndApplyDamage(damage);
+            
+            showObstacleResult("Failure! Obstacle Not Overcome", 
+                              "Total Skill: " + totalSkill + " vs. Difficulty: " + obstacleDifficulty + 
+                              "\nPlayers Take " + damage + " Damage\n\n" +
+                              skillBreakdown.toString(),
+                              false);
+        }
+    }
+    
+    /**
+     * Distributes and applies damage to players.
+     */
+    private void distributeAndApplyDamage(int totalDamage) {
+        // Simple distribution - divide damage equally among players
+        int playersCount = players.size();
+        int damagePerPlayer = totalDamage / playersCount;
+        int remainingDamage = totalDamage % playersCount;
+        
+        boolean allDefeated = true;
+        
+        for (int i = 0; i < players.size(); i++) {
+            Player player = players.get(i);
+            
+            // Calculate damage for this player
+            int playerDamage = damagePerPlayer;
+            if (i < remainingDamage) {
+                playerDamage += 1; // Distribute remaining damage
+            }
+            
+            // Apply damage to the player
+            int remainingHealth = player.takeDamage(playerDamage);
+            System.out.println(player.getName() + " takes " + playerDamage + " damage, health: " + remainingHealth);
+            
+            if (!player.isDefeated()) {
+                allDefeated = false;
+            }
+        }
+        
+        // Check if all players are defeated
+        if (allDefeated) {
+            // Game over - all players are defeated
+            showGameResult("Game Over! All players have been defeated!");
+        }
+    }
+    
+    /**
+     * Shows the result of the obstacle resolution.
+     */
+    private void showObstacleResult(String title, String message, boolean success) {
+        centerPanel.getChildren().clear();
+        
+        VBox resultBox = new VBox(10);
+        resultBox.setAlignment(Pos.CENTER);
+        resultBox.setPadding(new Insets(20));
+        
+        if (success) {
+            resultBox.setStyle("-fx-background-color: #2d6e4a; -fx-background-radius: 8;");
+        } else {
+            resultBox.setStyle("-fx-background-color: #6e2d2d; -fx-background-radius: 8;");
+        }
+        
+        Label titleLabel = new Label(title);
+        titleLabel.setFont(Font.font("System", FontWeight.BOLD, 24));
+        titleLabel.setTextFill(Color.WHITE);
+        
+        Label messageLabel = new Label(message);
+        messageLabel.setFont(Font.font("System", 16));
+        messageLabel.setTextFill(Color.WHITE);
+        
+        // Check if any player is defeated
+        final boolean anyDefeated = isAnyPlayerDefeated();
+        
+        Button continueButton = new Button("Continue");
+        continueButton.setOnAction(event -> {
+            if (anyDefeated) {
+                // Game over if any player is defeated
+                showGameResult("Game Over! Some players have been defeated!");
+            } else {
+                presentNextObstacle();
+            }
+        });
+        
+        resultBox.getChildren().addAll(titleLabel, messageLabel, continueButton);
+        centerPanel.getChildren().add(resultBox);
+    }
+    
+    /**
+     * Checks if any player is defeated.
+     * 
+     * @return true if any player is defeated, false otherwise
+     */
+    private boolean isAnyPlayerDefeated() {
+        for (Player player : players) {
+            if (player.isDefeated()) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Shows the final game result.
+     */
+    private void showGameResult(String message) {
+        centerPanel.getChildren().clear();
+        
+        VBox resultBox = new VBox(10);
+        resultBox.setAlignment(Pos.CENTER);
+        resultBox.setPadding(new Insets(20));
+        resultBox.setStyle("-fx-background-color: #2d4b6e; -fx-background-radius: 8;");
+        
+        Label titleLabel = new Label("Game Over");
+        titleLabel.setFont(Font.font("System", FontWeight.BOLD, 28));
+        titleLabel.setTextFill(Color.WHITE);
+        
+        Label messageLabel = new Label(message);
+        messageLabel.setFont(Font.font("System", 20));
+        messageLabel.setTextFill(Color.WHITE);
+        
+        Button restartButton = new Button("Play Again");
+        restartButton.setOnAction(event -> startGame());
+        
+        resultBox.getChildren().addAll(titleLabel, messageLabel, restartButton);
+        centerPanel.getChildren().add(resultBox);
     }
 }

@@ -10,7 +10,7 @@
     "name": "Burning Hallway",
     "description": "A hallway engulfed in flames from ruptured fuel lines.",
     "difficulty": 4,
-    "requiredSkills": ["speed", "health"],
+    "requiredSkills": ["speed", "tech"],
     "damagePerTurn": 2
   },
   "hull_breach": {
@@ -24,35 +24,35 @@
     "name": "Unpowered Lift",
     "description": "An elevator stuck between levels with critical system access.",
     "difficulty": 3,
-    "requiredSkills": ["tech", "strength"],
+    "requiredSkills": ["tech"],
     "damagePerTurn": 0
   },
   "collapsed_corridor": {
     "name": "Collapsed Corridor",
     "description": "Structural damage has caused a corridor to collapse, blocking the way.",
     "difficulty": 4,
-    "requiredSkills": ["strength", "health"],
+    "requiredSkills": ["strength"],
     "damagePerTurn": 1
   },
   "plasma_leak": {
     "name": "Plasma Leak",
     "description": "Hazardous plasma leaking from damaged power conduits.",
     "difficulty": 5,
-    "requiredSkills": ["tech", "speed"],
+    "requiredSkills": ["tech"],
     "damagePerTurn": 3
   },
   "injured_crewmate": {
     "name": "Injured Crewmate",
     "description": "A station crew member pinned under debris and requiring immediate assistance.",
     "difficulty": 3,
-    "requiredSkills": ["health", "strength"],
+    "requiredSkills": ["strength", "tech"],
     "damagePerTurn": 1
   },
   "electrical_fire": {
     "name": "Electrical Fire",
     "description": "Damaged circuitry causing electrical fires to spread through the walls.",
     "difficulty": 4,
-    "requiredSkills": ["tech", "health"],
+    "requiredSkills": ["tech"],
     "damagePerTurn": 2
   },
   "oxygen_failure": {
@@ -66,21 +66,21 @@
     "name": "Radiation Zone",
     "description": "Damaged reactor shielding causing dangerous radiation in this section.",
     "difficulty": 6,
-    "requiredSkills": ["health", "tech"],
+    "requiredSkills": ["tech"],
     "damagePerTurn": 4
   },
   "debris_field": {
     "name": "Debris Field",
     "description": "A hallway filled with floating debris from structural damage.",
     "difficulty": 3,
-    "requiredSkills": ["speed", "strength"],
+    "requiredSkills": ["speed", "strength", "tech"],
     "damagePerTurn": 1
   },
   "failing_life_support": {
     "name": "Failing Life Support",
     "description": "Critical life support systems failing in this section of the station.",
     "difficulty": 6,
-    "requiredSkills": ["tech", "health"],
+    "requiredSkills": ["tech"],
     "damagePerTurn": 3
   }
 } 

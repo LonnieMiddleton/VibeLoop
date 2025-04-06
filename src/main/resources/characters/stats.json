@@ -1,34 +1,34 @@
 {
   "mechanic": {
     "name": "Mechanic",
-    "strength": 6,
-    "speed": 7,
-    "tech": 9,
+    "strength": 2,
+    "speed": 1,
+    "tech": 3,
     "health": 5,
     "description": "Specializes in repairing equipment and technical solutions."
   },
   "medic": {
     "name": "Medic",
-    "strength": 5,
-    "speed": 6,
-    "tech": 8,
-    "health": 8,
+    "strength": 1,
+    "speed": 2,
+    "tech": 3,
+    "health": 5,
     "description": "Skilled at healing and supporting the team."
   },
   "pilot": {
     "name": "Pilot",
-    "strength": 7,
-    "speed": 9,
-    "tech": 7,
-    "health": 6,
+    "strength": 1,
+    "speed": 3,
+    "tech": 2,
+    "health": 5,
     "description": "Expert at controlling vehicles and quick movement."
   },
   "soldier": {
     "name": "Soldier",
-    "strength": 9,
-    "speed": 7,
-    "tech": 5,
-    "health": 8,
+    "strength": 3,
+    "speed": 2,
+    "tech": 1,
+    "health": 5,
     "description": "Combat specialist with high strength and endurance."
   }
 } 
