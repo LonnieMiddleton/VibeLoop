@@ -19,6 +19,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
@@ -28,6 +29,8 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -257,23 +260,57 @@ public class GameScreen {
         discardPileBox.setAlignment(Pos.CENTER);
         
         // Check if there's a card in the discard pile
-        if (!player.getDeck().getDiscardPile().isEmpty()) {
-            Card topCard = player.getDeck().getDiscardPile().get(player.getDeck().getDiscardPile().size() - 1);
+        List<Card> discardPile = player.getDeck().getDiscardPile();
+        if (!discardPile.isEmpty()) {
+            Card topCard = discardPile.get(discardPile.size() - 1);
             
-            // Determine card path
-            String cardPath = determineCardPath(topCard);
-            try {
-                Image cardImage = new Image(getClass().getResourceAsStream(cardPath));
-                ImageView discardImage = new ImageView(cardImage);
-                discardImage.setFitWidth(CARD_WIDTH);
-                discardImage.setFitHeight(CARD_HEIGHT);
-                discardPileBox.getChildren().add(discardImage);
-            } catch (Exception e) {
-                // Fallback to placeholder if image can't be loaded
+            // Try all possible paths for the card image
+            String[] possiblePaths = {
+                "/cards/" + topCard.getId() + ".jpg",
+                "/cards/skills/" + topCard.getId() + ".jpg", 
+                "/cards/tools/" + topCard.getId() + ".jpg"
+            };
+            
+            boolean imageLoaded = false;
+            for (String path : possiblePaths) {
+                InputStream is = getClass().getResourceAsStream(path);
+                if (is != null) {
+                    try {
+                        Image cardImage = new Image(is);
+                        ImageView discardImage = new ImageView(cardImage);
+                        discardImage.setFitWidth(CARD_WIDTH);
+                        discardImage.setFitHeight(CARD_HEIGHT);
+                        discardPileBox.getChildren().add(discardImage);
+                        imageLoaded = true;
+                        break;
+                    } catch (Exception e) {
+                        continue;
+                    } finally {
+                        try {
+                            is.close();
+                        } catch (IOException e) {
+                            System.err.println("Error closing stream: " + e.getMessage());
+                        }
+                    }
+                }
+            }
+            
+            // If no image could be loaded, use a placeholder
+            if (!imageLoaded) {
                 Rectangle discardPlaceholder = new Rectangle(CARD_WIDTH, CARD_HEIGHT);
                 discardPlaceholder.setFill(Color.GRAY.deriveColor(0, 1, 1, 0.3));
                 discardPlaceholder.setStroke(Color.WHITE);
-                discardPileBox.getChildren().add(discardPlaceholder);
+                
+                // Add a label with card name inside the placeholder
+                StackPane placeholderWithText = new StackPane();
+                Text cardNameText = new Text(topCard.getName());
+                cardNameText.setFill(Color.WHITE);
+                cardNameText.setFont(Font.font("System", FontWeight.BOLD, 9));
+                cardNameText.setWrappingWidth(CARD_WIDTH - 10);
+                cardNameText.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+                
+                placeholderWithText.getChildren().addAll(discardPlaceholder, cardNameText);
+                discardPileBox.getChildren().add(placeholderWithText);
             }
         } else {
             // No cards in discard pile, show placeholder
@@ -343,106 +380,160 @@ public class GameScreen {
             
             boolean imageLoaded = false;
             for (String path : possiblePaths) {
-                try {
-                    Image image = new Image(getClass().getResourceAsStream(path));
-                    ImageView cardImage = new ImageView(image);
-                    cardImage.setFitWidth(CARD_WIDTH);
-                    cardImage.setFitHeight(CARD_HEIGHT);
-                    
-                    // Create stat indicator
-                    javafx.scene.layout.StackPane indicator = new javafx.scene.layout.StackPane();
-                    Circle indicatorBg = new Circle(10);
-                    indicatorBg.setFill(statColor);
-                    indicatorBg.setStroke(Color.WHITE);
-                    indicatorBg.setStrokeWidth(1);
-                    
-                    Text indicatorText = new Text(statLetter);
-                    indicatorText.setFill(Color.WHITE);
-                    indicatorText.setFont(Font.font("System", FontWeight.BOLD, 9));
-                    
-                    indicator.getChildren().addAll(indicatorBg, indicatorText);
-                    
-                    // Create tooltip
-                    Tooltip tooltip = createCardTooltip(card);
-                    tooltip.setShowDelay(Duration.millis(50));
-                    Tooltip.install(cardPane, tooltip);
-                    
-                    // Add click handler for playing cards
-                    if (currentPlayerIndex == players.indexOf(player) && currentObstacle != null) {
-                        cardPane.setOnMouseClicked(event -> playCard(player, card));
-                        cardPane.setStyle("-fx-cursor: hand;");
+                InputStream is = getClass().getResourceAsStream(path);
+                if (is != null) {
+                    try {
+                        Image image = new Image(is);
+                        ImageView cardImage = new ImageView(image);
+                        cardImage.setFitWidth(CARD_WIDTH);
+                        cardImage.setFitHeight(CARD_HEIGHT);
+                        
+                        // Create stat indicator
+                        javafx.scene.layout.StackPane indicator = new javafx.scene.layout.StackPane();
+                        Circle indicatorBg = new Circle(10);
+                        indicatorBg.setFill(statColor);
+                        indicatorBg.setStroke(Color.WHITE);
+                        indicatorBg.setStrokeWidth(1);
+                        
+                        Text indicatorText = new Text(statLetter);
+                        indicatorText.setFill(Color.WHITE);
+                        indicatorText.setFont(Font.font("System", FontWeight.BOLD, 9));
+                        
+                        indicator.getChildren().addAll(indicatorBg, indicatorText);
+                        
+                        // Create tooltip
+                        Tooltip tooltip = createCardTooltip(card);
+                        tooltip.setShowDelay(Duration.millis(50));
+                        Tooltip.install(cardPane, tooltip);
+                        
+                        // Add click handler for playing cards
+                        if (currentPlayerIndex == players.indexOf(player) && currentObstacle != null) {
+                            cardPane.setOnMouseClicked(event -> playCard(player, card));
+                            cardPane.setStyle("-fx-cursor: hand;");
+                        }
+                        
+                        // Add to stack pane
+                        cardPane.getChildren().addAll(cardImage, indicator);
+                        handPane.getChildren().add(cardPane);
+                        imageLoaded = true;
+                        break;
+                    } catch (Exception e) {
+                        // Try next path
+                        continue;
+                    } finally {
+                        try {
+                            is.close();
+                        } catch (IOException e) {
+                            System.err.println("Error closing stream: " + e.getMessage());
+                        }
                     }
-                    
-                    // Add to stack pane
-                    cardPane.getChildren().addAll(cardImage, indicator);
-                    handPane.getChildren().add(cardPane);
-                    imageLoaded = true;
-                    break;
-                } catch (Exception e) {
-                    // Try next path
-                    continue;
                 }
             }
             
             // If no image was loaded, use card back or placeholder
             if (!imageLoaded) {
                 try {
-                    Image backImage = new Image(getClass().getResourceAsStream("/cards/card_back.jpg"));
-                    ImageView cardImage = new ImageView(backImage);
-                    cardImage.setFitWidth(CARD_WIDTH);
-                    cardImage.setFitHeight(CARD_HEIGHT);
-                    
-                    // Create stat indicator
-                    javafx.scene.layout.StackPane indicator = new javafx.scene.layout.StackPane();
-                    Circle indicatorBg = new Circle(10);
-                    indicatorBg.setFill(statColor);
-                    indicatorBg.setStroke(Color.WHITE);
-                    indicatorBg.setStrokeWidth(1);
-                    
-                    Text indicatorText = new Text(statLetter);
-                    indicatorText.setFill(Color.WHITE);
-                    indicatorText.setFont(Font.font("System", FontWeight.BOLD, 9));
-                    
-                    indicator.getChildren().addAll(indicatorBg, indicatorText);
-                    
-                    // Create tooltip
-                    Tooltip tooltip = createCardTooltip(card);
-                    tooltip.setShowDelay(Duration.millis(50));
-                    Tooltip.install(cardPane, tooltip);
-                    
-                    // Add click handler for playing cards
-                    if (currentPlayerIndex == players.indexOf(player) && currentObstacle != null) {
-                        cardPane.setOnMouseClicked(event -> playCard(player, card));
-                        cardPane.setStyle("-fx-cursor: hand;");
+                    InputStream backIs = getClass().getResourceAsStream("/cards/card_back.jpg");
+                    if (backIs != null) {
+                        Image backImage = new Image(backIs);
+                        ImageView cardImage = new ImageView(backImage);
+                        cardImage.setFitWidth(CARD_WIDTH);
+                        cardImage.setFitHeight(CARD_HEIGHT);
+                        
+                        // Create stat indicator
+                        javafx.scene.layout.StackPane indicator = new javafx.scene.layout.StackPane();
+                        Circle indicatorBg = new Circle(10);
+                        indicatorBg.setFill(statColor);
+                        indicatorBg.setStroke(Color.WHITE);
+                        indicatorBg.setStrokeWidth(1);
+                        
+                        Text indicatorText = new Text(statLetter);
+                        indicatorText.setFill(Color.WHITE);
+                        indicatorText.setFont(Font.font("System", FontWeight.BOLD, 9));
+                        
+                        indicator.getChildren().addAll(indicatorBg, indicatorText);
+                        
+                        // Add text overlay with card name
+                        Text cardNameText = new Text(card.getName());
+                        cardNameText.setFill(Color.WHITE);
+                        cardNameText.setFont(Font.font("System", FontWeight.BOLD, 10));
+                        cardNameText.setWrappingWidth(CARD_WIDTH - 10);
+                        cardNameText.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+                        
+                        // Create tooltip
+                        Tooltip tooltip = createCardTooltip(card);
+                        tooltip.setShowDelay(Duration.millis(50));
+                        Tooltip.install(cardPane, tooltip);
+                        
+                        // Add click handler for playing cards
+                        if (currentPlayerIndex == players.indexOf(player) && currentObstacle != null) {
+                            cardPane.setOnMouseClicked(event -> playCard(player, card));
+                            cardPane.setStyle("-fx-cursor: hand;");
+                        }
+                        
+                        // Add to stack pane
+                        cardPane.getChildren().addAll(cardImage, cardNameText, indicator);
+                        handPane.getChildren().add(cardPane);
+                        
+                        try {
+                            backIs.close();
+                        } catch (IOException e) {
+                            System.err.println("Error closing stream: " + e.getMessage());
+                        }
+                    } else {
+                        // Fall back to placeholder rectangle
+                        createPlaceholderCard(card, cardPane, statColor, statLetter, player, handPane);
                     }
-                    
-                    // Add to stack pane
-                    cardPane.getChildren().addAll(cardImage, indicator);
-                    handPane.getChildren().add(cardPane);
                 } catch (Exception ex) {
                     // If card back also fails, use a placeholder rectangle
-                    Rectangle placeholder = new Rectangle(CARD_WIDTH, CARD_HEIGHT);
-                    placeholder.setFill(Color.GRAY.deriveColor(0, 1, 1, 0.3));
-                    placeholder.setStroke(Color.WHITE);
-                    
-                    // Create stat indicator
-                    javafx.scene.layout.StackPane indicator = new javafx.scene.layout.StackPane();
-                    Circle indicatorBg = new Circle(10);
-                    indicatorBg.setFill(statColor);
-                    indicatorBg.setStroke(Color.WHITE);
-                    indicatorBg.setStrokeWidth(1);
-                    
-                    Text indicatorText = new Text(statLetter);
-                    indicatorText.setFill(Color.WHITE);
-                    indicatorText.setFont(Font.font("System", FontWeight.BOLD, 9));
-                    
-                    indicator.getChildren().addAll(indicatorBg, indicatorText);
-                    
-                    cardPane.getChildren().addAll(placeholder, indicator);
-                    handPane.getChildren().add(cardPane);
+                    createPlaceholderCard(card, cardPane, statColor, statLetter, player, handPane);
                 }
             }
         }
+    }
+    
+    /**
+     * Helper method to create a placeholder card with text.
+     */
+    private void createPlaceholderCard(Card card, StackPane cardPane, Color statColor, String statLetter, 
+                                     Player player, FlowPane handPane) {
+        Rectangle placeholder = new Rectangle(CARD_WIDTH, CARD_HEIGHT);
+        placeholder.setFill(Color.GRAY.deriveColor(0, 1, 1, 0.3));
+        placeholder.setStroke(Color.WHITE);
+        
+        // Create stat indicator
+        javafx.scene.layout.StackPane indicator = new javafx.scene.layout.StackPane();
+        Circle indicatorBg = new Circle(10);
+        indicatorBg.setFill(statColor);
+        indicatorBg.setStroke(Color.WHITE);
+        indicatorBg.setStrokeWidth(1);
+        
+        Text indicatorText = new Text(statLetter);
+        indicatorText.setFill(Color.WHITE);
+        indicatorText.setFont(Font.font("System", FontWeight.BOLD, 9));
+        
+        indicator.getChildren().addAll(indicatorBg, indicatorText);
+        
+        // Add text overlay with card name
+        Text cardNameText = new Text(card.getName());
+        cardNameText.setFill(Color.WHITE);
+        cardNameText.setFont(Font.font("System", FontWeight.BOLD, 10));
+        cardNameText.setWrappingWidth(CARD_WIDTH - 10);
+        cardNameText.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        
+        // Create tooltip
+        Tooltip tooltip = createCardTooltip(card);
+        tooltip.setShowDelay(Duration.millis(50));
+        Tooltip.install(cardPane, tooltip);
+        
+        // Add click handler for playing cards
+        if (currentPlayerIndex == players.indexOf(player) && currentObstacle != null) {
+            cardPane.setOnMouseClicked(event -> playCard(player, card));
+            cardPane.setStyle("-fx-cursor: hand;");
+        }
+        
+        cardPane.getChildren().addAll(placeholder, cardNameText, indicator);
+        handPane.getChildren().add(cardPane);
     }
     
     /**
@@ -536,10 +627,6 @@ public class GameScreen {
         typeText.setFill(statColor);
         typeText.setFont(Font.font("System", FontWeight.BOLD, 12));
         
-        Text costText = new Text("Cost: " + card.getCost());
-        costText.setFill(Color.WHITE);
-        costText.setFont(Font.font("System", 12));
-        
         Text descriptionText = new Text("Description: " + card.getDescription());
         descriptionText.setFill(Color.WHITE);
         descriptionText.setFont(Font.font("System", 12));
@@ -550,7 +637,7 @@ public class GameScreen {
         effectText.setFont(Font.font("System", 12));
         effectText.setWrappingWidth(250);
         
-        content.getChildren().addAll(nameText, typeText, costText, descriptionText, effectText);
+        content.getChildren().addAll(nameText, typeText, descriptionText, effectText);
         
         tooltip.setGraphic(content);
         tooltip.setMaxWidth(280);
@@ -861,8 +948,10 @@ public class GameScreen {
         discardPileBox.getChildren().clear();
         
         // Check if there's a card in the discard pile
-        if (!player.getDeck().getDiscardPile().isEmpty()) {
-            Card topCard = player.getDeck().getDiscardPile().get(player.getDeck().getDiscardPile().size() - 1);
+        List<Card> discardPile = player.getDeck().getDiscardPile();
+        if (!discardPile.isEmpty()) {
+            Card topCard = discardPile.get(discardPile.size() - 1);
+            System.out.println("Discard pile for " + player.getName() + " has " + discardPile.size() + " cards. Top card: " + topCard.getName());
             
             // Try all possible paths for the card image
             String[] possiblePaths = {
@@ -873,26 +962,50 @@ public class GameScreen {
             
             boolean imageLoaded = false;
             for (String path : possiblePaths) {
-                try {
-                    Image cardImage = new Image(getClass().getResourceAsStream(path));
-                    ImageView discardImage = new ImageView(cardImage);
-                    discardImage.setFitWidth(CARD_WIDTH);
-                    discardImage.setFitHeight(CARD_HEIGHT);
-                    discardPileBox.getChildren().add(discardImage);
-                    imageLoaded = true;
-                    break;
-                } catch (Exception e) {
-                    // Try next path
-                    continue;
+                System.out.println("Trying path: " + path);
+                InputStream is = getClass().getResourceAsStream(path);
+                if (is != null) {
+                    try {
+                        Image cardImage = new Image(is);
+                        ImageView discardImage = new ImageView(cardImage);
+                        discardImage.setFitWidth(CARD_WIDTH);
+                        discardImage.setFitHeight(CARD_HEIGHT);
+                        discardPileBox.getChildren().add(discardImage);
+                        System.out.println("Successfully loaded image from: " + path);
+                        imageLoaded = true;
+                        break;
+                    } catch (Exception e) {
+                        System.err.println("Error loading image from " + path + ": " + e.getMessage());
+                        continue;
+                    } finally {
+                        try {
+                            is.close();
+                        } catch (IOException e) {
+                            System.err.println("Error closing stream: " + e.getMessage());
+                        }
+                    }
+                } else {
+                    System.out.println("Resource not found: " + path);
                 }
             }
             
             // If no image could be loaded, use a placeholder
             if (!imageLoaded) {
+                System.out.println("Using placeholder for " + topCard.getName());
                 Rectangle discardPlaceholder = new Rectangle(CARD_WIDTH, CARD_HEIGHT);
                 discardPlaceholder.setFill(Color.GRAY.deriveColor(0, 1, 1, 0.3));
                 discardPlaceholder.setStroke(Color.WHITE);
-                discardPileBox.getChildren().add(discardPlaceholder);
+                
+                // Add a label with card name inside the placeholder
+                StackPane placeholderWithText = new StackPane();
+                Text cardNameText = new Text(topCard.getName());
+                cardNameText.setFill(Color.WHITE);
+                cardNameText.setFont(Font.font("System", FontWeight.BOLD, 9));
+                cardNameText.setWrappingWidth(CARD_WIDTH - 10);
+                cardNameText.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+                
+                placeholderWithText.getChildren().addAll(discardPlaceholder, cardNameText);
+                discardPileBox.getChildren().add(placeholderWithText);
             }
         } else {
             // No cards in discard pile, show placeholder
@@ -1168,29 +1281,5 @@ public class GameScreen {
         
         resultBox.getChildren().addAll(titleLabel, messageLabel, restartButton);
         centerPanel.getChildren().add(resultBox);
-    }
-    
-    /**
-     * Determines the image path for a card.
-     */
-    private String determineCardPath(Card card) {
-        // Attempt to load card image (try different paths)
-        String cardId = card.getId();
-        
-        // Try to find the card image with the same paths used in updateObstacleDisplay
-        String[] possiblePaths = {
-            "/cards/" + cardId + ".jpg",
-            "/cards/skills/" + cardId + ".jpg", 
-            "/cards/tools/" + cardId + ".jpg"
-        };
-        
-        for (String path : possiblePaths) {
-            if (getClass().getResourceAsStream(path) != null) {
-                return path;
-            }
-        }
-        
-        // Default to card back
-        return "/cards/card_back.jpg";
     }
 }

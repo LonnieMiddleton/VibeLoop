@@ -8,16 +8,14 @@ public class Card {
     private String name;
     private String description;
     private String type;
-    private int cost;
     private String effect;
     private String imagePath;
     
-    public Card(String id, String name, String description, String type, int cost, String effect) {
+    public Card(String id, String name, String description, String type, String effect) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.type = type;
-        this.cost = cost;
         this.effect = effect;
         this.imagePath = "/cards/" + id + ".jpg";
     }
@@ -36,10 +34,6 @@ public class Card {
     
     public String getType() {
         return type;
-    }
-    
-    public int getCost() {
-        return cost;
     }
     
     public String getEffect() {

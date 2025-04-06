@@ -49,8 +49,7 @@ public class ObstacleService {
                     obstacleObj.getString("name"),
                     obstacleObj.getString("description"),
                     obstacleObj.getInt("difficulty"),
-                    requiredSkills,
-                    obstacleObj.getInt("damagePerTurn")
+                    requiredSkills
                 );
                 obstacleCards.put(id, obstacle);
             }

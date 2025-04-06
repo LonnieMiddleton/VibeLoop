@@ -67,7 +67,6 @@ public class App extends Application {
             System.out.println("- " + obstacle.getName() + " (Difficulty: " + obstacle.getDifficulty() + ")");
             System.out.println("  Description: " + obstacle.getDescription());
             System.out.println("  Required Skills: " + String.join(", ", obstacle.getRequiredSkills()));
-            System.out.println("  Damage Per Turn: " + obstacle.getDamagePerTurn());
         }
     }
 
