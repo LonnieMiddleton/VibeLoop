@@ -1,0 +1,44 @@
+# Gradle files
+.gradle/
+build/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+.gradletasknamecache
+
+# Java/IntelliJ specific
+*.class
+*.jar
+*.war
+*.ear
+*.log
+out/
+.idea/
+*.iml
+*.iws
+*.ipr
+*.ids
+*.orig
+classes/
+
+# Eclipse specific
+.classpath
+.project
+.settings/
+bin/
+
+# VSCode specific
+.vscode/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Other common files to ignore
+*.swp
+*~
+.fuse_hidden* 

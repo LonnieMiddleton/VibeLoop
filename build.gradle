@@ -1,0 +1,37 @@
+plugins {
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+}
+
+javafx {
+    version = '21'
+    modules = ['javafx.controls', 'javafx.fxml']
+}
+
+application {
+    mainClass = 'com.vibeloop.game.App'
+}
+
+dependencies {
+    // Additional dependencies can be added here if needed
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+}
+
+// Fix for the warning about using an incubating plugins
+tasks.named('run') {
+    jvmArgs = ['--module-path', classpath.asPath, '--add-modules', 'javafx.controls,javafx.fxml']
+} 
