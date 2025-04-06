@@ -36,10 +36,9 @@ public class Deck {
     
     public Card drawCard() {
         if (drawPile.isEmpty()) {
-            resetDrawPile();
-            if (drawPile.isEmpty()) {
-                return null; // No cards left to draw
-            }
+            // Don't automatically shuffle the discard pile back into the draw pile
+            // Just return null if there are no more cards to draw
+            return null;
         }
         
         Card drawnCard = drawPile.remove(0);
