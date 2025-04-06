@@ -1,6 +1,7 @@
 package com.vibeloop.game.ui;
 
 import com.vibeloop.game.model.Player;
+import com.vibeloop.game.service.CardService;
 import com.vibeloop.game.service.CharacterService;
 
 import javafx.geometry.Insets;
@@ -25,11 +26,13 @@ import java.util.List;
 public class CharacterSelectionScreen {
     private final Stage stage;
     private final CharacterService characterService;
+    private final CardService cardService;
     private final List<Player> players;
     
-    public CharacterSelectionScreen(Stage stage, CharacterService characterService) {
+    public CharacterSelectionScreen(Stage stage, CharacterService characterService, CardService cardService) {
         this.stage = stage;
         this.characterService = characterService;
+        this.cardService = cardService;
         this.players = new ArrayList<>();
         
         // Initialize players with default characters
@@ -91,10 +94,21 @@ public class CharacterSelectionScreen {
      * Starts the game with the selected characters.
      */
     private void startGame() {
-        // TO DO: Implement the game start logic
+        // Initialize decks for players based on their character type
+        for (Player player : players) {
+            String characterType = player.getSelectedCharacter().getType();
+            player.setDeck(cardService.createStarterDeck(characterType));
+        }
+        
+        // Show game information
         System.out.println("Starting game with the following players:");
         for (Player player : players) {
+            String characterType = player.getSelectedCharacter().getType();
             System.out.println(player.getName() + " as " + player.getSelectedCharacter().getName());
+            System.out.println("  Starter deck: " + player.getDeck().getCards().size() + " cards");
+            System.out.println("  Cards: " + player.getDeck().getCards());
         }
+        
+        // TO DO: Proceed to the game screen
     }
 } 

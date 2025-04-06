@@ -1,0 +1,30 @@
+{
+  "mechanic": {
+    "cards": [
+      "push_through",
+      "repair_kit",
+      "improvised_explosive"
+    ]
+  },
+  "medic": {
+    "cards": [
+      "push_through",
+      "healing_salve",
+      "shield_up"
+    ]
+  },
+  "pilot": {
+    "cards": [
+      "push_through",
+      "evasive_maneuvers",
+      "tactical_maneuver"
+    ]
+  },
+  "soldier": {
+    "cards": [
+      "push_through",
+      "quick_strike",
+      "shield_up"
+    ]
+  }
+} 

@@ -1,5 +1,6 @@
 package com.vibeloop.game;
 
+import com.vibeloop.game.service.CardService;
 import com.vibeloop.game.service.CharacterService;
 import com.vibeloop.game.ui.CharacterSelectionScreen;
 
@@ -14,11 +15,13 @@ import javafx.stage.Stage;
 public class App extends Application {
 
     private CharacterService characterService;
+    private CardService cardService;
 
     @Override
     public void start(Stage primaryStage) {
         // Initialize services
         characterService = new CharacterService();
+        cardService = new CardService();
         
         // Create UI components for welcome screen
         Label welcomeLabel = new Label("Welcome to VibeLoop Game!");
@@ -43,7 +46,7 @@ public class App extends Application {
      * Shows the character selection screen.
      */
     private void showCharacterSelection(Stage primaryStage) {
-        CharacterSelectionScreen selectionScreen = new CharacterSelectionScreen(primaryStage, characterService);
+        CharacterSelectionScreen selectionScreen = new CharacterSelectionScreen(primaryStage, characterService, cardService);
         selectionScreen.show();
     }
 

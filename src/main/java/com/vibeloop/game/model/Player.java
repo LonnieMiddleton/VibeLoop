@@ -10,6 +10,7 @@ public class Player {
     private final int playerNumber;
     private final StringProperty name = new SimpleStringProperty("Player");
     private Character selectedCharacter;
+    private Deck deck;
 
     public Player(int playerNumber, Character initialCharacter) {
         this.playerNumber = playerNumber;
@@ -39,5 +40,13 @@ public class Player {
 
     public void setSelectedCharacter(Character selectedCharacter) {
         this.selectedCharacter = selectedCharacter;
+    }
+    
+    public Deck getDeck() {
+        return deck;
+    }
+    
+    public void setDeck(Deck deck) {
+        this.deck = deck;
     }
 } 
