@@ -7,15 +7,15 @@ public class Card {
     private String id;
     private String name;
     private String description;
-    private String type;
+    private String stat;
     private String effect;
     private String imagePath;
     
-    public Card(String id, String name, String description, String type, String effect) {
+    public Card(String id, String name, String description, String stat, String effect) {
         this.id = id;
         this.name = name;
         this.description = description;
-        this.type = type;
+        this.stat = stat;
         this.effect = effect;
         this.imagePath = "/cards/" + id + ".jpg";
     }
@@ -32,8 +32,8 @@ public class Card {
         return description;
     }
     
-    public String getType() {
-        return type;
+    public String getStat() {
+        return stat;
     }
     
     public String getEffect() {

@@ -44,7 +44,7 @@ public class CardService {
                     id,
                     cardObj.getString("name"),
                     cardObj.getString("description"),
-                    cardObj.getString("type"),
+                    cardObj.getString("stat"),
                     cardObj.getString("effect")
                 );
                 cards.put(id, card);

@@ -347,11 +347,11 @@ public class GameScreen {
             cardPane.setAlignment(Pos.BOTTOM_RIGHT);
             
             // Determine the associated stat and color
-            String cardType = card.getType().toLowerCase();
+            String cardStat = card.getStat().toLowerCase();
             Color statColor = Color.WHITE;
             String statLetter = "";
             
-            switch (cardType) {
+            switch (cardStat) {
                 case "strength":
                     statColor = Color.rgb(220, 100, 100);
                     statLetter = "S";
@@ -599,11 +599,11 @@ public class GameScreen {
         nameText.setFill(Color.WHITE);
         nameText.setFont(Font.font("System", FontWeight.BOLD, 14));
         
-        String cardType = card.getType().toLowerCase();
+        String cardStat = card.getStat().toLowerCase();
         String associatedStat = "";
         Color statColor = Color.WHITE;
         
-        switch (cardType) {
+        switch (cardStat) {
             case "strength":
                 associatedStat = "Strength";
                 statColor = Color.rgb(220, 100, 100);
@@ -623,7 +623,7 @@ public class GameScreen {
                 break;
         }
         
-        Text typeText = new Text("Type: " + card.getType() + " (Uses " + associatedStat + ")");
+        Text typeText = new Text("Stat: " + card.getStat() + " (Uses " + associatedStat + ")");
         typeText.setFill(statColor);
         typeText.setFont(Font.font("System", FontWeight.BOLD, 12));
         
@@ -777,11 +777,11 @@ public class GameScreen {
             // Card image or "Skipped" indicator
             if (card != null) {
                 // Determine the associated stat and color
-                String cardType = card.getType().toLowerCase();
+                String cardStat = card.getStat().toLowerCase();
                 Color statColor = Color.WHITE;
                 String statLetter = "";
                 
-                switch (cardType) {
+                switch (cardStat) {
                     case "strength":
                         statColor = Color.rgb(220, 100, 100);
                         statLetter = "S";
@@ -1092,11 +1092,11 @@ public class GameScreen {
             
             if (card != null) {
                 // Check if the card type matches a required skill
-                String cardType = card.getType().toLowerCase();
+                String cardStat = card.getStat().toLowerCase();
                 boolean matchesSkill = false;
                 
                 for (String skill : requiredSkills) {
-                    if (cardType.equals(skill.toLowerCase())) {
+                    if (cardStat.equals(skill.toLowerCase())) {
                         matchesSkill = true;
                         break;
                     }
@@ -1106,7 +1106,7 @@ public class GameScreen {
                 
                 if (matchesSkill) {
                     // Card type matches a required skill, add the character's corresponding stat
-                    switch (cardType) {
+                    switch (cardStat) {
                         case "strength":
                             contributedSkill = character.getStrength();
                             skillBreakdown.append(player.getName()).append(": ").append(card.getName())
