@@ -3,6 +3,8 @@ package com.vibeloop.game.ui;
 import com.vibeloop.game.model.Player;
 import com.vibeloop.game.service.CardService;
 import com.vibeloop.game.service.CharacterService;
+import com.vibeloop.game.service.ObstacleService;
+import com.vibeloop.game.ui.GameScreen;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -27,12 +29,14 @@ public class CharacterSelectionScreen {
     private final Stage stage;
     private final CharacterService characterService;
     private final CardService cardService;
+    private final ObstacleService obstacleService;
     private final List<Player> players;
     
-    public CharacterSelectionScreen(Stage stage, CharacterService characterService, CardService cardService) {
+    public CharacterSelectionScreen(Stage stage, CharacterService characterService, CardService cardService, ObstacleService obstacleService) {
         this.stage = stage;
         this.characterService = characterService;
         this.cardService = cardService;
+        this.obstacleService = obstacleService;
         this.players = new ArrayList<>();
         
         // Initialize players with default characters
@@ -100,7 +104,7 @@ public class CharacterSelectionScreen {
             player.setDeck(cardService.createStarterDeck(characterType));
         }
         
-        // Show game information
+        // Log player information (for debugging)
         System.out.println("Starting game with the following players:");
         for (Player player : players) {
             String characterType = player.getSelectedCharacter().getType();
@@ -109,6 +113,8 @@ public class CharacterSelectionScreen {
             System.out.println("  Cards: " + player.getDeck().getCards());
         }
         
-        // TO DO: Proceed to the game screen
+        // Create and show the game screen
+        GameScreen gameScreen = new GameScreen(stage, players, obstacleService);
+        gameScreen.show();
     }
 } 

@@ -53,7 +53,7 @@ public class App extends Application {
      */
     private void showCharacterSelection(Stage primaryStage) {
         CharacterSelectionScreen selectionScreen = new CharacterSelectionScreen(
-            primaryStage, characterService, cardService);
+            primaryStage, characterService, cardService, obstacleService);
         selectionScreen.show();
     }
     
