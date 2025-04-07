@@ -9,15 +9,17 @@ public class ObstacleCard {
     private String description;
     private int difficulty;
     private String[] requiredSkills;
+    private String type;
     private String imagePath;
     
     public ObstacleCard(String id, String name, String description, int difficulty, 
-                      String[] requiredSkills) {
+                      String[] requiredSkills, String type) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.difficulty = difficulty;
         this.requiredSkills = requiredSkills;
+        this.type = type;
         this.imagePath = "/obstacles/" + id + ".jpg";
     }
     
@@ -39,6 +41,10 @@ public class ObstacleCard {
     
     public String[] getRequiredSkills() {
         return requiredSkills;
+    }
+    
+    public String getType() {
+        return type;
     }
     
     public String getImagePath() {

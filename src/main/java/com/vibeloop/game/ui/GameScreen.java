@@ -371,6 +371,12 @@ public class GameScreen {
                     break;
             }
             
+            // Check if card is compatible with current obstacle
+            boolean isCompatible = true;
+            if (currentObstacle != null) {
+                isCompatible = card.isCompatibleWithType(currentObstacle.getType());
+            }
+            
             // Try all possible paths for the card image
             String[] possiblePaths = {
                 "/cards/" + card.getId() + ".jpg",
@@ -387,6 +393,11 @@ public class GameScreen {
                         ImageView cardImage = new ImageView(image);
                         cardImage.setFitWidth(CARD_WIDTH);
                         cardImage.setFitHeight(CARD_HEIGHT);
+                        
+                        // Add a gray overlay for incompatible cards
+                        if (!isCompatible) {
+                            cardImage.setEffect(new javafx.scene.effect.ColorAdjust(0, -0.5, -0.5, 0));
+                        }
                         
                         // Create stat indicator
                         javafx.scene.layout.StackPane indicator = new javafx.scene.layout.StackPane();
@@ -414,6 +425,23 @@ public class GameScreen {
                         
                         // Add to stack pane
                         cardPane.getChildren().addAll(cardImage, indicator);
+                        
+                        // Add compatibility indicator if not compatible
+                        if (!isCompatible) {
+                            Label incompatibleLabel = new Label("!");
+                            incompatibleLabel.setTextFill(Color.RED);
+                            incompatibleLabel.setFont(Font.font("System", FontWeight.BOLD, 16));
+                            incompatibleLabel.setBackground(new javafx.scene.layout.Background(
+                                new javafx.scene.layout.BackgroundFill(Color.WHITE, new javafx.scene.layout.CornerRadii(8), javafx.geometry.Insets.EMPTY)
+                            ));
+                            incompatibleLabel.setPadding(new Insets(0, 4, 0, 4));
+                            incompatibleLabel.setTranslateX(-CARD_WIDTH/2 + 8);
+                            incompatibleLabel.setTranslateY(-CARD_HEIGHT/2 + 8);
+                            incompatibleLabel.setTooltip(new Tooltip("Not compatible with " + currentObstacle.getType() + " obstacles"));
+                            
+                            cardPane.getChildren().add(incompatibleLabel);
+                        }
+                        
                         handPane.getChildren().add(cardPane);
                         imageLoaded = true;
                         break;
@@ -430,7 +458,7 @@ public class GameScreen {
                 }
             }
             
-            // If no image was loaded, use card back or placeholder
+            // If no image was loaded, use card back or placeholder with compatibility indicator
             if (!imageLoaded) {
                 try {
                     InputStream backIs = getClass().getResourceAsStream("/cards/card_back.jpg");
@@ -439,6 +467,11 @@ public class GameScreen {
                         ImageView cardImage = new ImageView(backImage);
                         cardImage.setFitWidth(CARD_WIDTH);
                         cardImage.setFitHeight(CARD_HEIGHT);
+                        
+                        // Add a gray overlay for incompatible cards
+                        if (!isCompatible) {
+                            cardImage.setEffect(new javafx.scene.effect.ColorAdjust(0, -0.5, -0.5, 0));
+                        }
                         
                         // Create stat indicator
                         javafx.scene.layout.StackPane indicator = new javafx.scene.layout.StackPane();
@@ -632,12 +665,21 @@ public class GameScreen {
         descriptionText.setFont(Font.font("System", 12));
         descriptionText.setWrappingWidth(250);
         
-        Text effectText = new Text("Effect: " + card.getEffect());
-        effectText.setFill(Color.WHITE);
-        effectText.setFont(Font.font("System", 12));
-        effectText.setWrappingWidth(250);
+        // Add compatibility information
+        String[] compatibleTypes = card.getCompatibleTypes();
+        String compatibilityText = "Compatible with: ";
+        if (compatibleTypes != null && compatibleTypes.length > 0) {
+            compatibilityText += String.join(", ", compatibleTypes);
+        } else {
+            compatibilityText += "None";
+        }
         
-        content.getChildren().addAll(nameText, typeText, descriptionText, effectText);
+        Text compatibilityLabel = new Text(compatibilityText);
+        compatibilityLabel.setFill(Color.YELLOW);
+        compatibilityLabel.setFont(Font.font("System", 12));
+        compatibilityLabel.setWrappingWidth(250);
+        
+        content.getChildren().addAll(nameText, typeText, descriptionText, compatibilityLabel);
         
         tooltip.setGraphic(content);
         tooltip.setMaxWidth(280);
@@ -741,6 +783,30 @@ public class GameScreen {
         difficultyLabel.setFont(Font.font("System", 14));
         difficultyLabel.setTextFill(Color.WHITE);
         
+        // Add obstacle type with a color based on the type
+        Label typeLabel = new Label("Type: " + currentObstacle.getType());
+        typeLabel.setFont(Font.font("System", 14));
+        
+        // Set color based on type
+        String type = currentObstacle.getType().toLowerCase();
+        switch (type) {
+            case "barrier":
+                typeLabel.setTextFill(Color.ORANGE);
+                break;
+            case "hazard":
+                typeLabel.setTextFill(Color.RED);
+                break;
+            case "environment":
+                typeLabel.setTextFill(Color.LIGHTBLUE);
+                break;
+            case "personnel":
+                typeLabel.setTextFill(Color.LIGHTGREEN);
+                break;
+            default:
+                typeLabel.setTextFill(Color.WHITE);
+                break;
+        }
+        
         Label skillsLabel = new Label("Required Skills: " + String.join(", ", currentObstacle.getRequiredSkills()));
         skillsLabel.setFont(Font.font("System", 14));
         skillsLabel.setTextFill(Color.WHITE);
@@ -751,7 +817,7 @@ public class GameScreen {
         descriptionLabel.setWrapText(true);
         descriptionLabel.setMaxWidth(300);
         
-        obstacleBox.getChildren().addAll(nameLabel, difficultyLabel, skillsLabel, descriptionLabel);
+        obstacleBox.getChildren().addAll(nameLabel, difficultyLabel, typeLabel, skillsLabel, descriptionLabel);
         
         // Add played cards section
         VBox playedCardsBox = new VBox(5);
@@ -1091,6 +1157,16 @@ public class GameScreen {
             Character character = player.getSelectedCharacter();
             
             if (card != null) {
+                // Check if the card is compatible with the obstacle type
+                boolean isCompatible = card.isCompatibleWithType(currentObstacle.getType());
+                
+                // If card is not compatible with obstacle type, it contributes nothing
+                if (!isCompatible) {
+                    skillBreakdown.append(player.getName()).append(": ").append(card.getName())
+                        .append(" (0 - INCOMPATIBLE: Not usable against ").append(currentObstacle.getType()).append(")\n");
+                    continue; // Skip to next player
+                }
+                
                 // Check if the card type matches a required skill
                 String cardStat = card.getStat().toLowerCase();
                 boolean matchesSkill = false;
@@ -1105,32 +1181,27 @@ public class GameScreen {
                 int contributedSkill = 0;
                 
                 if (matchesSkill) {
-                    // Card type matches a required skill, add the character's corresponding stat
+                    // Card type matches a required skill
                     switch (cardStat) {
                         case "strength":
                             contributedSkill = character.getStrength();
-                            skillBreakdown.append(player.getName()).append(": ").append(card.getName())
-                                .append(" (Strength ").append(character.getStrength()).append(")\n");
                             break;
                         case "speed":
                             contributedSkill = character.getSpeed();
-                            skillBreakdown.append(player.getName()).append(": ").append(card.getName())
-                                .append(" (Speed ").append(character.getSpeed()).append(")\n");
                             break;
                         case "tech":
                             contributedSkill = character.getTech();
-                            skillBreakdown.append(player.getName()).append(": ").append(card.getName())
-                                .append(" (Tech ").append(character.getTech()).append(")\n");
                             break;
                         default:
                             // Default to strength for any other type
                             contributedSkill = character.getStrength();
-                            skillBreakdown.append(player.getName()).append(": ").append(card.getName())
-                                .append(" (Strength ").append(character.getStrength()).append(")\n");
                             break;
                     }
+                    
+                    skillBreakdown.append(player.getName()).append(": ").append(card.getName())
+                        .append(" (").append(cardStat).append(" ").append(contributedSkill).append(")\n");
                 } else {
-                    // Card doesn't match a required skill, add base value of 1
+                    // Card doesn't match a required skill, contributes base value of 1
                     contributedSkill = 1;
                     skillBreakdown.append(player.getName()).append(": ").append(card.getName())
                         .append(" (Non-matching - base value 1)\n");

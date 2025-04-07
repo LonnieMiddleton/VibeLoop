@@ -3,60 +3,60 @@
     "name": "Push Through",
     "description": "Forcefully move forward, ignoring minor obstacles.",
     "stat": "strength",
-    "effect": "move_forward_ignore_obstacles"
+    "compatibleTypes": ["barrier"]
   },
   "quick_strike": {
     "name": "Quick Strike",
     "description": "A fast attack that catches enemies off guard.",
     "stat": "speed",
-    "effect": "attack_quick"
+    "compatibleTypes": ["personnel"]
   },
   "shield_up": {
     "name": "Shield Up",
     "description": "Raise your shield to block incoming damage.",
     "stat": "tech",
-    "effect": "defend_block"
+    "compatibleTypes": ["hazard", "environment"]
   },
   "repair_kit": {
     "name": "Repair Kit",
     "description": "Use tools to repair damaged equipment.",
     "stat": "tech",
-    "effect": "repair_equipment"
+    "compatibleTypes": ["barrier", "environment"]
   },
   "healing_salve": {
     "name": "Healing Salve",
     "description": "Apply medicinal herbs to heal wounds.",
     "stat": "tech",
-    "effect": "heal_wounds"
+    "compatibleTypes": ["personnel"]
   },
   "tactical_maneuver": {
     "name": "Tactical Maneuver",
     "description": "Reposition yourself for strategic advantage.",
     "stat": "speed",
-    "effect": "reposition"
+    "compatibleTypes": ["hazard", "personnel"]
   },
   "improvised_explosive": {
     "name": "Improvised Explosive",
     "description": "Quickly craft an explosive device from available materials.",
     "stat": "tech",
-    "effect": "area_damage"
+    "compatibleTypes": ["barrier"]
   },
   "analyze_weakness": {
     "name": "Analyze Weakness",
     "description": "Carefully observe the target to find vulnerabilities.",
     "stat": "tech",
-    "effect": "reveal_weakness"
+    "compatibleTypes": ["barrier", "hazard", "environment", "personnel"]
   },
   "evasive_maneuvers": {
     "name": "Evasive Maneuvers",
     "description": "Quickly dodge to avoid incoming attacks.",
     "stat": "speed",
-    "effect": "dodge_attack"
+    "compatibleTypes": ["hazard", "environment"]
   },
   "adrenaline_rush": {
     "name": "Adrenaline Rush",
     "description": "A surge of energy allowing for extraordinary feats.",
     "stat": "strength",
-    "effect": "boost_next_action"
+    "compatibleTypes": ["barrier", "hazard"]
   }
 } 

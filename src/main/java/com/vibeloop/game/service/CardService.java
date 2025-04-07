@@ -40,12 +40,26 @@ public class CardService {
             
             for (String id : jsonObject.keySet()) {
                 JsonObject cardObj = jsonObject.getJsonObject(id);
+                
+                // Get compatible types if present, or default to all types if not
+                String[] compatibleTypes;
+                if (cardObj.containsKey("compatibleTypes")) {
+                    JsonArray typesArray = cardObj.getJsonArray("compatibleTypes");
+                    compatibleTypes = new String[typesArray.size()];
+                    for (int i = 0; i < typesArray.size(); i++) {
+                        compatibleTypes[i] = typesArray.getString(i);
+                    }
+                } else {
+                    // Default to all types if not specified
+                    compatibleTypes = new String[]{"barrier", "hazard", "environment", "personnel"};
+                }
+                
                 Card card = new Card(
                     id,
                     cardObj.getString("name"),
                     cardObj.getString("description"),
                     cardObj.getString("stat"),
-                    cardObj.getString("effect")
+                    compatibleTypes
                 );
                 cards.put(id, card);
             }

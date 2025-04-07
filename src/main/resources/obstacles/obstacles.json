@@ -3,72 +3,84 @@
     "name": "Broken Door",
     "description": "A security door stuck halfway open, blocking the path to critical areas.",
     "difficulty": 3,
-    "requiredSkills": ["tech", "strength"]
+    "requiredSkills": ["tech", "strength"],
+    "type": "barrier"
   },
   "burning_hallway": {
     "name": "Burning Hallway",
     "description": "A hallway engulfed in flames from ruptured fuel lines.",
     "difficulty": 4,
-    "requiredSkills": ["speed", "tech"]
+    "requiredSkills": ["speed", "tech"],
+    "type": "hazard"
   },
   "hull_breach": {
     "name": "Hull Breach",
     "description": "A section of the outer hull has been punctured, causing rapid depressurization.",
     "difficulty": 5,
-    "requiredSkills": ["tech", "strength"]
+    "requiredSkills": ["tech", "strength"],
+    "type": "environment"
   },
   "unpowered_lift": {
     "name": "Unpowered Lift",
     "description": "An elevator stuck between levels with critical system access.",
     "difficulty": 3,
-    "requiredSkills": ["tech"]
+    "requiredSkills": ["tech"],
+    "type": "barrier"
   },
   "collapsed_corridor": {
     "name": "Collapsed Corridor",
     "description": "Structural damage has caused a corridor to collapse, blocking the way.",
     "difficulty": 4,
-    "requiredSkills": ["strength"]
+    "requiredSkills": ["strength"],
+    "type": "barrier"
   },
   "plasma_leak": {
     "name": "Plasma Leak",
     "description": "Hazardous plasma leaking from damaged power conduits.",
     "difficulty": 5,
-    "requiredSkills": ["tech"]
+    "requiredSkills": ["tech"],
+    "type": "hazard"
   },
   "injured_crewmate": {
     "name": "Injured Crewmate",
     "description": "A station crew member pinned under debris and requiring immediate assistance.",
     "difficulty": 3,
-    "requiredSkills": ["strength", "tech"]
+    "requiredSkills": ["strength", "tech"],
+    "type": "personnel"
   },
   "electrical_fire": {
     "name": "Electrical Fire",
     "description": "Damaged circuitry causing electrical fires to spread through the walls.",
     "difficulty": 4,
-    "requiredSkills": ["tech"]
+    "requiredSkills": ["tech"],
+    "type": "hazard"
   },
   "oxygen_failure": {
     "name": "Oxygen Failure",
     "description": "The oxygen generation system is damaged, causing levels to drop rapidly.",
     "difficulty": 5,
-    "requiredSkills": ["tech", "speed"]
+    "requiredSkills": ["tech", "speed"],
+    "type": "environment"
   },
   "radiation_zone": {
     "name": "Radiation Zone",
     "description": "Damaged reactor shielding causing dangerous radiation in this section.",
     "difficulty": 6,
-    "requiredSkills": ["tech"]
+    "requiredSkills": ["tech"],
+    "type": "environment"
   },
   "debris_field": {
     "name": "Debris Field",
     "description": "A hallway filled with floating debris from structural damage.",
     "difficulty": 3,
-    "requiredSkills": ["speed", "strength", "tech"]
+    "requiredSkills": ["speed", "strength", "tech"],
+    "type": "barrier"
   },
   "failing_life_support": {
     "name": "Failing Life Support",
     "description": "Critical life support systems failing in this section of the station.",
     "difficulty": 6,
-    "requiredSkills": ["tech"]
+    "requiredSkills": ["tech"],
+    "type": "environment"
   }
 } 
