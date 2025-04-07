@@ -39,8 +39,8 @@ public class CharacterSelectionScreen {
         this.obstacleService = obstacleService;
         this.players = new ArrayList<>();
         
-        // Initialize players with default characters
-        String[] initialCharacters = {"mechanic", "medic", "pilot", "soldier"};
+        // Initialize players with default characters (including new types)
+        String[] initialCharacters = {"engineer", "scientist", "pilot", "soldier"};
         for (int i = 0; i < 4; i++) {
             players.add(new Player(i + 1, characterService.getCharacter(initialCharacters[i])));
         }

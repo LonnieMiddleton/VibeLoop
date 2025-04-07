@@ -207,14 +207,10 @@ public class GameScreen {
         mainRow.setAlignment(Pos.CENTER_LEFT);
         
         // Character image
-        ImageView characterImage = new ImageView(new Image(player.getSelectedCharacter().getImagePath()));
+        ImageView characterImage = new ImageView();
         characterImage.setFitWidth(PROFILE_WIDTH);
         characterImage.setFitHeight(PROFILE_WIDTH);
         characterImage.setPreserveRatio(true);
-        
-        // Create tooltip for character stats
-        Tooltip characterTooltip = createCharacterTooltip(player.getSelectedCharacter());
-        Tooltip.install(characterImage, characterTooltip);
         
         // Hand of cards
         VBox handBox = new VBox(3);
@@ -229,8 +225,75 @@ public class GameScreen {
         
         handBox.getChildren().add(handPane);
         
-        // Add character image and hand to main row
-        mainRow.getChildren().addAll(characterImage, handBox);
+        try {
+            // Try to load the character image
+            Image image = new Image(getClass().getResourceAsStream(player.getSelectedCharacter().getImagePath()));
+            characterImage.setImage(image);
+        } catch (Exception e) {
+            // If image can't be loaded, create a colored rectangle with the character's initial
+            System.err.println("Error loading character image for " + player.getSelectedCharacter().getType() + ": " + e.getMessage());
+            
+            Rectangle placeholder = new Rectangle(PROFILE_WIDTH, PROFILE_WIDTH);
+            
+            // Different background colors for different character types
+            switch (player.getSelectedCharacter().getType()) {
+                case "mechanic":
+                    placeholder.setFill(Color.DARKBLUE);
+                    break;
+                case "medic":
+                    placeholder.setFill(Color.DARKGREEN);
+                    break;
+                case "pilot":
+                    placeholder.setFill(Color.DARKGOLDENROD);
+                    break;
+                case "soldier":
+                    placeholder.setFill(Color.DARKRED);
+                    break;
+                case "engineer":
+                    placeholder.setFill(Color.DARKORANGE);
+                    break;
+                case "scientist":
+                    placeholder.setFill(Color.DARKVIOLET);
+                    break;
+                default:
+                    placeholder.setFill(Color.GRAY);
+                    break;
+            }
+            
+            placeholder.setStroke(Color.WHITE);
+            placeholder.setStrokeWidth(2);
+            
+            // Add text with first letter of character name
+            Text initial = new Text(String.valueOf(player.getSelectedCharacter().getName().charAt(0)));
+            initial.setFill(Color.WHITE);
+            initial.setFont(Font.font("System", FontWeight.BOLD, 36));
+            
+            StackPane placeholderPane = new StackPane(placeholder, initial);
+            placeholderPane.setPrefSize(PROFILE_WIDTH, PROFILE_WIDTH);
+            
+            // Replace the ImageView with the StackPane in the layout
+            characterImage = new ImageView(); // Dummy ImageView that won't be used
+            mainRow.getChildren().add(placeholderPane); // Add placeholder directly
+            
+            // Create tooltip for character stats
+            Tooltip characterTooltip = createCharacterTooltip(player.getSelectedCharacter());
+            Tooltip.install(placeholderPane, characterTooltip);
+            
+            // Skip adding the ImageView later
+            characterImage = null;
+        }
+        
+        // Create tooltip for character stats if we have a valid image
+        if (characterImage != null) {
+            Tooltip characterTooltip = createCharacterTooltip(player.getSelectedCharacter());
+            Tooltip.install(characterImage, characterTooltip);
+            
+            // Add character image and hand to main row
+            mainRow.getChildren().addAll(characterImage, handBox);
+        } else {
+            // Character image was replaced with a placeholder above
+            mainRow.getChildren().add(handBox);
+        }
         
         // Deck and discard pile
         HBox deckRow = new HBox(10);

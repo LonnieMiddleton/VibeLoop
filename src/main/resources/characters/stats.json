@@ -30,5 +30,21 @@
     "tech": 1,
     "health": 5,
     "description": "Combat specialist with high strength and endurance."
+  },
+  "engineer": {
+    "name": "Engineer",
+    "strength": 2,
+    "speed": 1,
+    "tech": 4,
+    "health": 4,
+    "description": "Master of complex systems and high-tech solutions."
+  },
+  "scientist": {
+    "name": "Scientist",
+    "strength": 1,
+    "speed": 2,
+    "tech": 4,
+    "health": 4,
+    "description": "Expert in analyzing problems and finding creative solutions."
   }
 } 

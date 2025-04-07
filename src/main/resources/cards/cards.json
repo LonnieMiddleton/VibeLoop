@@ -58,5 +58,128 @@
     "description": "A surge of energy allowing for extraordinary feats.",
     "stat": "strength",
     "compatibleTypes": ["barrier", "hazard"]
+  },
+  
+  "neural_interface": {
+    "name": "Neural Interface",
+    "description": "Connect directly to station systems for enhanced control.",
+    "stat": "tech",
+    "compatibleTypes": ["environment", "barrier"]
+  },
+  "quantum_decoder": {
+    "name": "Quantum Decoder",
+    "description": "Bypass encrypted security protocols.",
+    "stat": "tech",
+    "compatibleTypes": ["barrier", "environment"]
+  },
+  "nanite_repair_kit": {
+    "name": "Nanite Repair Kit",
+    "description": "Deploy microscopic robots to repair damaged components.",
+    "stat": "tech",
+    "compatibleTypes": ["barrier", "environment"]
+  },
+  "emp_disruptor": {
+    "name": "EMP Disruptor",
+    "description": "Temporarily disable malfunctioning systems.",
+    "stat": "tech",
+    "compatibleTypes": ["environment", "personnel"]
+  },
+  "holo_projector": {
+    "name": "Holo-Projector",
+    "description": "Create decoy images to distract automated defense systems.",
+    "stat": "tech",
+    "compatibleTypes": ["personnel", "hazard"]
+  },
+  "power_rerouter": {
+    "name": "Power Rerouter",
+    "description": "Redirect energy from non-essential systems.",
+    "stat": "tech",
+    "compatibleTypes": ["environment", "barrier"]
+  },
+  "data_recovery_module": {
+    "name": "Data Recovery Module",
+    "description": "Extract information from corrupted terminals.",
+    "stat": "tech",
+    "compatibleTypes": ["environment"]
+  },
+  
+  "emergency_jetpack": {
+    "name": "Emergency Jetpack",
+    "description": "Rapidly move between station sections.",
+    "stat": "speed",
+    "compatibleTypes": ["hazard", "environment"]
+  },
+  "temporal_accelerator": {
+    "name": "Temporal Accelerator",
+    "description": "Briefly speed up your actions within the time loop.",
+    "stat": "speed",
+    "compatibleTypes": ["hazard", "personnel"]
+  },
+  "neural_enhancer": {
+    "name": "Neural Enhancer",
+    "description": "Boost reaction time and cognitive processing.",
+    "stat": "speed",
+    "compatibleTypes": ["personnel", "hazard"]
+  },
+  "anti_grav_boots": {
+    "name": "Anti-Grav Boots",
+    "description": "Move freely in zero-gravity sections.",
+    "stat": "speed",
+    "compatibleTypes": ["environment", "hazard"]
+  },
+  "wormhole_generator": {
+    "name": "Wormhole Generator",
+    "description": "Create a temporary shortcut between two points.",
+    "stat": "speed",
+    "compatibleTypes": ["barrier", "environment"]
+  },
+  "reflex_stimulant": {
+    "name": "Reflex Stimulant",
+    "description": "Injectable compound that heightens reflexes.",
+    "stat": "speed",
+    "compatibleTypes": ["personnel", "hazard"]
+  },
+  
+  "exo_frame": {
+    "name": "Exo-Frame",
+    "description": "Powered exoskeleton for enhanced physical capabilities.",
+    "stat": "strength",
+    "compatibleTypes": ["barrier", "environment"]
+  },
+  "plasma_cutter": {
+    "name": "Plasma Cutter",
+    "description": "Cut through structural barriers.",
+    "stat": "strength",
+    "compatibleTypes": ["barrier"]
+  },
+  "gravity_manipulator": {
+    "name": "Gravity Manipulator",
+    "description": "Alter local gravity to move heavy objects.",
+    "stat": "strength",
+    "compatibleTypes": ["barrier", "environment"]
+  },
+  "radiation_shield": {
+    "name": "Radiation Shield",
+    "description": "Withstand dangerous radiation levels near the core.",
+    "stat": "strength",
+    "compatibleTypes": ["environment", "hazard"]
+  },
+  "pressure_stabilizer": {
+    "name": "Pressure Stabilizer",
+    "description": "Survive extreme atmospheric conditions.",
+    "stat": "strength",
+    "compatibleTypes": ["environment", "hazard"]
+  },
+  "magnetic_grapple": {
+    "name": "Magnetic Grapple",
+    "description": "Move or secure heavy metallic objects.",
+    "stat": "strength",
+    "compatibleTypes": ["barrier", "environment"]
+  },
+  "structural_reinforcer": {
+    "name": "Structural Reinforcer",
+    "description": "Temporarily strengthen weakened station sections.",
+    "stat": "strength",
+    "compatibleTypes": ["barrier", "environment"]
   }
 } 

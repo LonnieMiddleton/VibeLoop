@@ -26,5 +26,19 @@
       "quick_strike",
       "shield_up"
     ]
+  },
+  "engineer": {
+    "cards": [
+      "repair_kit",
+      "analyze_weakness",
+      "neural_interface"
+    ]
+  },
+  "scientist": {
+    "cards": [
+      "analyze_weakness",
+      "data_recovery_module",
+      "temporal_accelerator"
+    ]
   }
 } 
