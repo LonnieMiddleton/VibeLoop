@@ -129,4 +129,13 @@ public class ObstacleDeck {
     public List<ObstacleCard> getDefeatedObstacles() {
         return Collections.unmodifiableList(defeatedObstacles);
     }
+    
+    /**
+     * Checks if the draw pile is empty.
+     * 
+     * @return true if the draw pile is empty, false otherwise
+     */
+    public boolean isEmpty() {
+        return drawPile.isEmpty();
+    }
 } 

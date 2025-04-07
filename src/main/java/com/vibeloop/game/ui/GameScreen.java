@@ -76,6 +76,10 @@ public class GameScreen {
     private ScrollPane historyScrollPane;
     private HBox historyBar;
     
+    // New variables for tracking time loops and determining loss conditions
+    private int currentLoop = 1; // Start with loop 1
+    private int maxObstaclesPassed = 0; // Track max obstacles passed in previous loops
+    
     // Inner class to track obstacle results
     private static class ObstacleResult {
         private final ObstacleCard obstacle;
@@ -820,9 +824,29 @@ public class GameScreen {
             originalObstacleDeckOrder = new ArrayList<>(obstacleDeck.getAllCards());
             // Shuffle for the first game
             obstacleDeck.shuffle();
+            
+            // Reset loop variables
+            currentLoop = 1;
+            maxObstaclesPassed = 0;
         } else {
             // For subsequent games (after time loops), reset to original order without shuffling
             resetObstacleDeckToOriginalOrder();
+            
+            // Reset the game entirely if player chooses "Play Again" at the end
+            currentLoop = 1;
+            maxObstaclesPassed = 0;
+            
+            // Clear obstacle history
+            obstacleHistory.clear();
+            
+            // Shuffle the obstacles for a new complete game
+            obstacleDeck.shuffle();
+        }
+        
+        // Reset all players' health to full
+        for (Player player : players) {
+            player.heal(player.getSelectedCharacter().getHealth());
+            updatePlayerUI(player);
         }
         
         // Start with the first player
@@ -859,8 +883,23 @@ public class GameScreen {
         currentObstacle = obstacleDeck.drawObstacle();
         
         if (currentObstacle == null) {
-            // No more obstacles, game is over with success
-            showGameResult("Victory! All obstacles have been overcome!");
+            // No more obstacles, loop is complete
+            
+            // In loop 1 or if we've encountered more obstacles than previous loops, it's a win
+            int currentObstaclesEncountered = getTotalObstaclesEncountered();
+            int successfulObstacles = getSuccessfulObstacleCount();
+            
+            if (currentLoop == 1 || currentObstaclesEncountered > maxObstaclesPassed) {
+                // Victory! All obstacles overcome and we've made progress
+                showGameResult("Victory! All obstacles have been overcome! You completed Loop " + 
+                              currentLoop + " and encountered " + currentObstaclesEncountered + 
+                              " obstacles (" + successfulObstacles + " successful).");
+            } else {
+                // Failed to make more progress than previous loop - loss condition 2
+                showGameResult("Game Over! You failed to make more progress than your previous loop. " +
+                              "You encountered " + currentObstaclesEncountered + " obstacles, but needed to encounter at least " + 
+                              (maxObstaclesPassed + 1) + ".");
+            }
             return;
         }
         
@@ -892,6 +931,40 @@ public class GameScreen {
         // Add history bar to the top of center panel
         VBox historyPanel = createHistoryPanel();
         centerPanel.getChildren().add(historyPanel);
+        
+        // Add loop information
+        HBox loopInfoBox = new HBox(10);
+        loopInfoBox.setAlignment(Pos.CENTER);
+        loopInfoBox.setPadding(new Insets(5));
+        loopInfoBox.setStyle("-fx-background-color: #1a3245; -fx-background-radius: 8;");
+        
+        Label loopLabel = new Label("Time Loop: " + currentLoop);
+        loopLabel.setFont(Font.font("System", FontWeight.BOLD, 16));
+        loopLabel.setTextFill(Color.LIGHTBLUE);
+        
+        // Show progress requirement if not the first loop
+        if (currentLoop > 1) {
+            Label progressLabel = new Label("Required Progress: " + (maxObstaclesPassed + 1) + 
+                                           " obstacles (previous: " + maxObstaclesPassed + ")");
+            progressLabel.setFont(Font.font("System", 14));
+            progressLabel.setTextFill(Color.LIGHTYELLOW);
+            
+            Label currentProgressLabel = new Label("Current: " + getTotalObstaclesEncountered() + 
+                                                " encountered (" + getSuccessfulObstacleCount() + " successful)");
+            currentProgressLabel.setFont(Font.font("System", 14));
+            currentProgressLabel.setTextFill(Color.LIGHTYELLOW);
+            
+            loopInfoBox.getChildren().addAll(loopLabel, progressLabel, currentProgressLabel);
+        } else {
+            Label currentProgressLabel = new Label("Obstacles: " + getTotalObstaclesEncountered() + 
+                                                " encountered (" + getSuccessfulObstacleCount() + " successful)");
+            currentProgressLabel.setFont(Font.font("System", 14));
+            currentProgressLabel.setTextFill(Color.LIGHTYELLOW);
+            
+            loopInfoBox.getChildren().addAll(loopLabel, currentProgressLabel);
+        }
+        
+        centerPanel.getChildren().add(loopInfoBox);
         
         // Update history bar
         updateHistoryBar();
@@ -1501,6 +1574,20 @@ public class GameScreen {
         // Check if any player is defeated
         final boolean anyDefeated = isAnyPlayerDefeated();
         
+        // Check if no more obstacles and we're not on the first loop - need to verify if we've surpassed previous loop
+        final boolean isLoopComplete = obstacleDeck.isEmpty();
+        if (isLoopComplete && currentLoop > 1) {
+            int currentObstaclesEncountered = getTotalObstaclesEncountered();
+            
+            // Loss condition 2: Failed to exceed previous loop's progress
+            if (currentObstaclesEncountered <= maxObstaclesPassed) {
+                showGameResult("Game Over! You failed to make more progress than your previous loop. " +
+                              "You encountered " + currentObstaclesEncountered + " obstacles, but needed to encounter at least " + 
+                              (maxObstaclesPassed + 1) + ".");
+                return;
+            }
+        }
+        
         Button continueButton = new Button("Continue");
         
         // Add notification about awarded card if success
@@ -1554,6 +1641,30 @@ public class GameScreen {
      * Begins the time loop mechanic when a player is defeated.
      */
     private void beginTimeLoop() {
+        // Update the maximum number of obstacles passed in previous loops
+        int obstaclesEncountered = getTotalObstaclesEncountered();
+        
+        // Check if we're beyond loop 1 and failed to make more progress
+        if (currentLoop > 1 && obstaclesEncountered <= maxObstaclesPassed) {
+            // Failed to make more progress than previous loop - loss condition 2
+            showGameResult("Game Over! You failed to make more progress than your previous loop. " +
+                          "You encountered " + obstaclesEncountered + " obstacles, but needed to encounter at least " + 
+                          (maxObstaclesPassed + 1) + ".");
+            return;
+        }
+        
+        maxObstaclesPassed = Math.max(maxObstaclesPassed, obstaclesEncountered);
+        
+        // Increment the loop counter
+        currentLoop++;
+        
+        // If this is the second loop (after first loop), check if all objectives failed in first loop
+        if (currentLoop == 2 && getSuccessfulObstacleCount() == 0) {
+            // Players failed all objectives on first loop - loss condition 1
+            showGameResult("Game Over! You failed all objectives on the first loop.");
+            return;
+        }
+        
         // Reset the obstacle deck to its original order without shuffling
         resetObstacleDeckToOriginalOrder();
         
@@ -1562,6 +1673,29 @@ public class GameScreen {
         
         // Show the card removal screen for each player
         showCardRemovalScreen();
+    }
+    
+    /**
+     * Counts the number of successfully passed obstacles in the current loop.
+     * @return The number of obstacles successfully passed
+     */
+    private int getSuccessfulObstacleCount() {
+        int successCount = 0;
+        for (ObstacleResult result : obstacleHistory) {
+            if (result.isSucceeded()) {
+                successCount++;
+            }
+        }
+        return successCount;
+    }
+    
+    /**
+     * Counts the total number of obstacles encountered in the current loop,
+     * regardless of success or failure.
+     * @return The total number of obstacles encountered
+     */
+    private int getTotalObstaclesEncountered() {
+        return obstacleHistory.size();
     }
     
     /**
