@@ -67,6 +67,30 @@ public class GameScreen {
     // Preserve the original order of the obstacle deck for time loop mechanic
     private List<ObstacleCard> originalObstacleDeckOrder;
     
+    // Track obstacle results in the current loop
+    private List<ObstacleResult> obstacleHistory = new ArrayList<>();
+    private ScrollPane historyScrollPane;
+    private HBox historyBar;
+    
+    // Inner class to track obstacle results
+    private static class ObstacleResult {
+        private final ObstacleCard obstacle;
+        private final boolean succeeded;
+        
+        public ObstacleResult(ObstacleCard obstacle, boolean succeeded) {
+            this.obstacle = obstacle;
+            this.succeeded = succeeded;
+        }
+        
+        public ObstacleCard getObstacle() {
+            return obstacle;
+        }
+        
+        public boolean isSucceeded() {
+            return succeeded;
+        }
+    }
+    
     public GameScreen(Stage stage, List<Player> players, ObstacleService obstacleService) {
         this.stage = stage;
         this.players = players;
@@ -76,6 +100,7 @@ public class GameScreen {
         this.playerHandPanes = new HashMap<>();
         this.playerStatusLabels = new HashMap<>();
         this.originalObstacleDeckOrder = new ArrayList<>(obstacleDeck.getAllCards());
+        this.obstacleHistory = new ArrayList<>();
     }
     
     /**
@@ -840,6 +865,13 @@ public class GameScreen {
     private void updateObstacleDisplay() {
         centerPanel.getChildren().clear();
         
+        // Add history bar to the top of center panel
+        VBox historyPanel = createHistoryPanel();
+        centerPanel.getChildren().add(historyPanel);
+        
+        // Update history bar
+        updateHistoryBar();
+        
         // Obstacle title
         Label titleLabel = new Label("Current Obstacle");
         titleLabel.setFont(Font.font("System", FontWeight.BOLD, 20));
@@ -1310,8 +1342,13 @@ public class GameScreen {
         
         // Compare total skill to obstacle difficulty
         int obstacleDifficulty = currentObstacle.getDifficulty();
+        boolean succeeded = totalSkill >= obstacleDifficulty;
         
-        if (totalSkill >= obstacleDifficulty) {
+        // Add obstacle to history
+        obstacleHistory.add(new ObstacleResult(currentObstacle, succeeded));
+        updateHistoryBar();
+        
+        if (succeeded) {
             // Success! Players overcome the obstacle
             obstacleDeck.defeatObstacle(currentObstacle);
             showObstacleResult("Success! Obstacle Overcome", 
@@ -1442,6 +1479,9 @@ public class GameScreen {
     private void beginTimeLoop() {
         // Reset the obstacle deck to its original order without shuffling
         resetObstacleDeckToOriginalOrder();
+        
+        // Clear obstacle history for the new loop
+        obstacleHistory.clear();
         
         // Show the card removal screen for each player
         showCardRemovalScreen();
@@ -1666,5 +1706,144 @@ public class GameScreen {
         
         resultBox.getChildren().addAll(titleLabel, messageLabel, restartButton);
         centerPanel.getChildren().add(resultBox);
+    }
+    
+    /**
+     * Updates the history bar with completed obstacles
+     */
+    private void updateHistoryBar() {
+        historyBar.getChildren().clear();
+        
+        if (obstacleHistory.isEmpty()) {
+            Label emptyLabel = new Label("No obstacles completed yet in this loop");
+            emptyLabel.setTextFill(Color.LIGHTGRAY);
+            historyBar.getChildren().add(emptyLabel);
+            return;
+        }
+        
+        for (ObstacleResult result : obstacleHistory) {
+            ObstacleCard obstacle = result.getObstacle();
+            boolean succeeded = result.isSucceeded();
+            
+            // Create a mini view of the obstacle
+            StackPane obstaclePane = new StackPane();
+            
+            // Obstacle image or placeholder
+            ImageView miniImage = null;
+            try {
+                Image image = new Image(getClass().getResourceAsStream(obstacle.getImagePath()));
+                miniImage = new ImageView(image);
+                miniImage.setFitWidth(CARD_WIDTH * 0.7);
+                miniImage.setFitHeight(CARD_HEIGHT * 0.7);
+                obstaclePane.getChildren().add(miniImage);
+            } catch (Exception e) {
+                // If image can't be loaded, use a placeholder
+                Rectangle placeholder = new Rectangle(CARD_WIDTH * 0.7, CARD_HEIGHT * 0.7);
+                placeholder.setFill(Color.GRAY.deriveColor(0, 1, 1, 0.3));
+                
+                // Add text with obstacle name
+                Text nameText = new Text(obstacle.getName());
+                nameText.setFill(Color.WHITE);
+                nameText.setFont(Font.font("System", FontWeight.BOLD, 9));
+                nameText.setWrappingWidth(CARD_WIDTH * 0.6);
+                nameText.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+                
+                obstaclePane.getChildren().addAll(placeholder, nameText);
+            }
+            
+            // Add border with color based on result
+            Rectangle border = new Rectangle(
+                CARD_WIDTH * 0.7 + 4, 
+                CARD_HEIGHT * 0.7 + 4,
+                Color.TRANSPARENT
+            );
+            border.setStroke(succeeded ? Color.GREEN : Color.RED);
+            border.setStrokeWidth(2);
+            obstaclePane.getChildren().add(border);
+            
+            // Create tooltip with obstacle details
+            Tooltip tooltip = createObstacleTooltip(obstacle, succeeded);
+            Tooltip.install(obstaclePane, tooltip);
+            
+            historyBar.getChildren().add(obstaclePane);
+        }
+        
+        // Auto-scroll to the right to show latest entry
+        historyScrollPane.setHvalue(1.0);
+    }
+    
+    /**
+     * Creates a tooltip for a completed obstacle
+     */
+    private Tooltip createObstacleTooltip(ObstacleCard obstacle, boolean succeeded) {
+        Tooltip tooltip = new Tooltip();
+        tooltip.setShowDelay(Duration.millis(50));
+        
+        VBox content = new VBox(3);
+        content.setPadding(new Insets(5));
+        content.setStyle("-fx-background-color: #333; -fx-text-fill: white;");
+        
+        Text nameText = new Text(obstacle.getName());
+        nameText.setFill(Color.WHITE);
+        nameText.setFont(Font.font("System", FontWeight.BOLD, 14));
+        
+        Text typeText = new Text("Type: " + obstacle.getType());
+        typeText.setFill(Color.LIGHTBLUE);
+        typeText.setFont(Font.font("System", 12));
+        
+        Text difficultyText = new Text("Difficulty: " + obstacle.getDifficulty());
+        difficultyText.setFill(Color.WHITE);
+        difficultyText.setFont(Font.font("System", 12));
+        
+        Text skillsText = new Text("Required Skills: " + String.join(", ", obstacle.getRequiredSkills()));
+        skillsText.setFill(Color.WHITE);
+        skillsText.setFont(Font.font("System", 12));
+        
+        Text resultText = new Text("Result: " + (succeeded ? "SUCCEEDED" : "FAILED"));
+        resultText.setFill(succeeded ? Color.LIGHTGREEN : Color.LIGHTPINK);
+        resultText.setFont(Font.font("System", FontWeight.BOLD, 12));
+        
+        content.getChildren().addAll(nameText, typeText, difficultyText, skillsText, resultText);
+        
+        tooltip.setGraphic(content);
+        tooltip.setMaxWidth(250);
+        
+        return tooltip;
+    }
+    
+    /**
+     * Creates a panel with a history bar showing completed obstacles
+     */
+    private VBox createHistoryPanel() {
+        VBox historyPanel = new VBox(5);
+        historyPanel.setPadding(new Insets(5, 10, 15, 10));
+        historyPanel.setAlignment(Pos.CENTER);
+        historyPanel.setMaxWidth(750); // Set a max width
+        historyPanel.setStyle("-fx-background-color: #0f2537; -fx-background-radius: 8;");
+        
+        Label historyLabel = new Label("Obstacle History (Current Loop)");
+        historyLabel.setFont(Font.font("System", FontWeight.BOLD, 14));
+        historyLabel.setTextFill(Color.WHITE);
+        
+        // Create scrollable history bar
+        historyScrollPane = new ScrollPane();
+        historyScrollPane.setPrefHeight(CARD_HEIGHT * 0.8 + 20); // Slightly smaller than cards
+        historyScrollPane.setMinWidth(600); // Set a reasonable minimum width
+        historyScrollPane.setMaxWidth(700); // Set a maximum width
+        historyScrollPane.setFitToHeight(true);
+        historyScrollPane.setFitToWidth(true);
+        historyScrollPane.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        historyScrollPane.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        historyScrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        
+        historyBar = new HBox(5);
+        historyBar.setAlignment(Pos.CENTER_LEFT);
+        historyBar.setPadding(new Insets(5));
+        
+        historyScrollPane.setContent(historyBar);
+        
+        historyPanel.getChildren().addAll(historyLabel, historyScrollPane);
+        
+        return historyPanel;
     }
 }
