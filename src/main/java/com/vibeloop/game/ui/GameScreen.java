@@ -25,6 +25,7 @@ import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.Polygon;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
@@ -63,6 +64,7 @@ public class GameScreen {
     private VBox centerPanel;
     private Map<Player, FlowPane> playerHandPanes;
     private Map<Player, Label> playerStatusLabels;
+    private Map<Player, Polygon> playerTurnArrows;
     
     // Preserve the original order of the obstacle deck for time loop mechanic
     private List<ObstacleCard> originalObstacleDeckOrder;
@@ -99,6 +101,7 @@ public class GameScreen {
         this.playedCards = new HashMap<>();
         this.playerHandPanes = new HashMap<>();
         this.playerStatusLabels = new HashMap<>();
+        this.playerTurnArrows = new HashMap<>();
         this.originalObstacleDeckOrder = new ArrayList<>(obstacleDeck.getAllCards());
         this.obstacleHistory = new ArrayList<>();
     }
@@ -129,6 +132,7 @@ public class GameScreen {
         Scene scene = new Scene(root, 1024, 768);
         stage.setTitle("VibeLoop Game");
         stage.setScene(scene);
+        stage.setFullScreen(true);
         stage.show();
         
         // Start the game
@@ -155,8 +159,32 @@ public class GameScreen {
         playersPanel.setPrefWidth(PROFILE_WIDTH + 240);
         
         for (Player player : players) {
+            // Create turn arrow for this player (initially invisible) - now pointing RIGHT
+            Polygon turnArrow = new Polygon(
+                0, 0,
+                0, 40,
+                30, 20  // Changed from -30 to 30 to point right instead of left
+            );
+            turnArrow.setFill(Color.YELLOW);
+            turnArrow.setStroke(Color.ORANGE);
+            turnArrow.setStrokeWidth(2);
+            turnArrow.setVisible(false);
+            playerTurnArrows.put(player, turnArrow);
+            
+            // Create arrow container
+            StackPane arrowPane = new StackPane(turnArrow);
+            arrowPane.setAlignment(Pos.CENTER_LEFT);
+            arrowPane.setPrefWidth(40);
+            
+            // Create player section
             VBox playerSection = createPlayerSection(player);
-            playersPanel.getChildren().add(playerSection);
+            
+            // Create horizontal layout with arrow and player section
+            HBox playerRow = new HBox(5);
+            playerRow.setAlignment(Pos.CENTER_LEFT);
+            playerRow.getChildren().addAll(arrowPane, playerSection);
+            
+            playersPanel.getChildren().add(playerRow);
         }
         
         return playersPanel;
@@ -166,7 +194,7 @@ public class GameScreen {
      * Creates a section for a single player with profile, deck, discard pile, and hand.
      */
     private VBox createPlayerSection(Player player) {
-        VBox playerSection = new VBox(5);
+        VBox playerSection = new VBox(3); // Reduced spacing from 5 to 3
         playerSection.setPadding(new Insets(8));
         playerSection.setStyle("-fx-background-color: #2d4b6e; -fx-background-radius: 8;");
         
@@ -204,7 +232,7 @@ public class GameScreen {
         nameLabel.setTranslateY(-22); // Move up to overlay the health bar
         
         // Stack health bar and label
-        VBox nameContainer = new VBox();
+        VBox nameContainer = new VBox(0); // Zero spacing in the name container
         nameContainer.getChildren().addAll(healthBarContainer, nameLabel);
         
         // Update health bar when health changes
@@ -228,12 +256,6 @@ public class GameScreen {
             nameLabel.setText(player.getName() + " - " + player.getSelectedCharacter().getName() + 
                              " (" + newVal + "/" + player.getSelectedCharacter().getHealth() + ")");
         });
-        
-        // Status label for player
-        Label statusLabel = new Label("Ready");
-        statusLabel.setFont(Font.font("System", FontWeight.NORMAL, 12));
-        statusLabel.setTextFill(Color.LIGHTGREEN);
-        playerStatusLabels.put(player, statusLabel);
         
         // Main row with character image and hand
         HBox mainRow = new HBox(10);
@@ -425,7 +447,7 @@ public class GameScreen {
         deckRow.getChildren().addAll(drawPileBox, discardPileBox);
         
         // Add all sections
-        playerSection.getChildren().addAll(nameContainer, statusLabel, mainRow, deckRow);
+        playerSection.getChildren().addAll(nameContainer, mainRow, deckRow);
         
         return playerSection;
     }
@@ -839,16 +861,15 @@ public class GameScreen {
             return;
         }
         
-        // Reset player status
+        // Hide all player arrows first
         for (Player player : players) {
-            playerStatusLabels.get(player).setText("Waiting");
-            playerStatusLabels.get(player).setTextFill(Color.YELLOW);
+            playerTurnArrows.get(player).setVisible(false);
         }
         
         // Set first player as active
         currentPlayerIndex = 0;
-        playerStatusLabels.get(players.get(currentPlayerIndex)).setText("Your Turn");
-        playerStatusLabels.get(players.get(currentPlayerIndex)).setTextFill(Color.LIGHTGREEN);
+        // Show the arrow for the current player
+        playerTurnArrows.get(players.get(currentPlayerIndex)).setVisible(true);
         
         // Update all player hands to show clickable cards for the active player
         for (Player player : players) {
@@ -1241,9 +1262,8 @@ public class GameScreen {
      * Advances to the next player or resolves the obstacle if all players have taken their turn.
      */
     private void advanceToNextPlayer() {
-        // Update current player status to "Done"
-        playerStatusLabels.get(players.get(currentPlayerIndex)).setText("Done");
-        playerStatusLabels.get(players.get(currentPlayerIndex)).setTextFill(Color.LIGHTBLUE);
+        // Hide the current player's arrow
+        playerTurnArrows.get(players.get(currentPlayerIndex)).setVisible(false);
         
         // Move to next player
         currentPlayerIndex++;
@@ -1253,9 +1273,8 @@ public class GameScreen {
             // All players have played, resolve the obstacle
             resolveObstacle();
         } else {
-            // Update next player status
-            playerStatusLabels.get(players.get(currentPlayerIndex)).setText("Your Turn");
-            playerStatusLabels.get(players.get(currentPlayerIndex)).setTextFill(Color.LIGHTGREEN);
+            // Show the next player's arrow
+            playerTurnArrows.get(players.get(currentPlayerIndex)).setVisible(true);
             
             // Update player hands to show clickable cards for current player
             for (Player player : players) {

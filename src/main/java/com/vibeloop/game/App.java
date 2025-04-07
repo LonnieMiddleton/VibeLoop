@@ -42,6 +42,7 @@ public class App extends Application {
         Scene scene = new Scene(root, 600, 400);
         primaryStage.setTitle("VibeLoop Game");
         primaryStage.setScene(scene);
+        primaryStage.setFullScreen(true);
         primaryStage.show();
         
         // Log available obstacles for testing

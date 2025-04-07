@@ -41,15 +41,11 @@ public class CharacterSelectionPanel extends VBox {
         setPrefSize(300, 400);
         setStyle("-fx-background-color: rgba(0, 0, 0, 0.7); -fx-background-radius: 10;");
         
-        // Player number header
-        Label playerLabel = new Label("Player " + player.getPlayerNumber());
-        playerLabel.setFont(Font.font("System", FontWeight.BOLD, 18));
-        playerLabel.setTextFill(Color.WHITE);
-        
         // Player name field
         playerNameField = new TextField(player.getName());
         playerNameField.textProperty().bindBidirectional(player.nameProperty());
         playerNameField.setMaxWidth(200);
+        playerNameField.setPromptText("Enter name");
         
         // Character image view
         characterImageView = new ImageView();
@@ -89,7 +85,6 @@ public class CharacterSelectionPanel extends VBox {
         
         // Add all components to the panel
         getChildren().addAll(
-            playerLabel,
             playerNameField,
             arrowButtonsBox,
             characterNameLabel,

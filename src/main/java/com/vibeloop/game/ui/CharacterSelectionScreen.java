@@ -92,6 +92,7 @@ public class CharacterSelectionScreen {
         Scene scene = new Scene(root, 1024, 768);
         stage.setTitle("VibeLoop Game - Character Selection");
         stage.setScene(scene);
+        stage.setFullScreen(true);
     }
     
     /**
