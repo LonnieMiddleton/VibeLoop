@@ -86,6 +86,15 @@ public class ObstacleDeck {
     }
     
     /**
+     * Clears active and defeated obstacles without affecting the draw pile.
+     * Used for time loop mechanic to maintain original order.
+     */
+    public void clearObstacles() {
+        activeObstacles.clear();
+        defeatedObstacles.clear();
+    }
+    
+    /**
      * Gets all obstacle cards in the deck.
      * 
      * @return the list of all obstacle cards

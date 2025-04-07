@@ -88,4 +88,21 @@ public class Deck {
     public List<Card> getDiscardPile() {
         return Collections.unmodifiableList(discardPile);
     }
+    
+    /**
+     * Removes a specific card from the deck completely.
+     * 
+     * @param card the card to remove
+     * @return true if the card was removed, false if it wasn't found
+     */
+    public boolean removeCard(Card card) {
+        boolean removedFromMain = cards.remove(card);
+        
+        // Also remove from all possible locations
+        boolean removedFromDraw = drawPile.remove(card);
+        boolean removedFromHand = hand.remove(card);
+        boolean removedFromDiscard = discardPile.remove(card);
+        
+        return removedFromMain || removedFromDraw || removedFromHand || removedFromDiscard;
+    }
 } 

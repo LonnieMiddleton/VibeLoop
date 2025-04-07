@@ -13,6 +13,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
@@ -20,6 +21,7 @@ import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.layout.StackPane;
+import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
@@ -36,6 +38,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Observable;
+import java.util.Observer;
 
 /**
  * Main game screen showing player profiles, decks, discard piles, and hands.
@@ -60,6 +64,9 @@ public class GameScreen {
     private Map<Player, FlowPane> playerHandPanes;
     private Map<Player, Label> playerStatusLabels;
     
+    // Preserve the original order of the obstacle deck for time loop mechanic
+    private List<ObstacleCard> originalObstacleDeckOrder;
+    
     public GameScreen(Stage stage, List<Player> players, ObstacleService obstacleService) {
         this.stage = stage;
         this.players = players;
@@ -68,6 +75,7 @@ public class GameScreen {
         this.playedCards = new HashMap<>();
         this.playerHandPanes = new HashMap<>();
         this.playerStatusLabels = new HashMap<>();
+        this.originalObstacleDeckOrder = new ArrayList<>(obstacleDeck.getAllCards());
     }
     
     /**
@@ -751,20 +759,43 @@ public class GameScreen {
     }
     
     /**
-     * Starts the game by shuffling the obstacle deck and presenting the first obstacle.
+     * Starts the game by initializing the obstacle deck and presenting the first obstacle.
      */
     private void startGame() {
-        // Clear any existing obstacles
-        obstacleDeck.resetDeck();
-        
-        // Shuffle the deck
-        obstacleDeck.shuffle();
+        // Initialize the obstacle deck if we're starting a brand new game
+        if (originalObstacleDeckOrder.isEmpty()) {
+            // This is the first game, create and store the original obstacle deck
+            obstacleDeck = obstacleService.createObstacleDeck();
+            // Store the original order before shuffling
+            originalObstacleDeckOrder = new ArrayList<>(obstacleDeck.getAllCards());
+            // Shuffle for the first game
+            obstacleDeck.shuffle();
+        } else {
+            // For subsequent games (after time loops), reset to original order without shuffling
+            resetObstacleDeckToOriginalOrder();
+        }
         
         // Start with the first player
         currentPlayerIndex = 0;
         
         // Present the first obstacle
         presentNextObstacle();
+    }
+    
+    /**
+     * Resets obstacle deck to original order without shuffling for time loop mechanic.
+     */
+    private void resetObstacleDeckToOriginalOrder() {
+        // Create a new obstacle deck with the original card order
+        obstacleDeck = new ObstacleDeck();
+        
+        // Add cards in the original order
+        for (ObstacleCard card : originalObstacleDeckOrder) {
+            obstacleDeck.addCard(card);
+        }
+        
+        // Reset active and defeated obstacles
+        obstacleDeck.clearObstacles();
     }
     
     /**
@@ -1309,7 +1340,7 @@ public class GameScreen {
         int damagePerPlayer = totalDamage / playersCount;
         int remainingDamage = totalDamage % playersCount;
         
-        boolean allDefeated = true;
+        boolean anyPlayerDefeated = false;
         
         for (int i = 0; i < players.size(); i++) {
             Player player = players.get(i);
@@ -1324,15 +1355,16 @@ public class GameScreen {
             int remainingHealth = player.takeDamage(playerDamage);
             System.out.println(player.getName() + " takes " + playerDamage + " damage, health: " + remainingHealth);
             
-            if (!player.isDefeated()) {
-                allDefeated = false;
+            if (player.isDefeated()) {
+                anyPlayerDefeated = true;
+                System.out.println(player.getName() + " has been defeated! Time loop activated!");
             }
         }
         
-        // Check if all players are defeated
-        if (allDefeated) {
-            // Game over - all players are defeated
-            showGameResult("Game Over! All players have been defeated!");
+        // Changed to check if ANY player is defeated for time loop mechanic
+        if (anyPlayerDefeated) {
+            // One or more players are defeated, but we'll handle this in showObstacleResult
+            System.out.println("At least one player has been defeated, time loop will be activated");
         }
     }
     
@@ -1364,10 +1396,23 @@ public class GameScreen {
         final boolean anyDefeated = isAnyPlayerDefeated();
         
         Button continueButton = new Button("Continue");
+        
+        if (anyDefeated) {
+            // Update button text for time loop
+            continueButton.setText("Enter Time Loop");
+            continueButton.setStyle("-fx-background-color: #8a2be2;"); // Purple background for time loop
+            
+            // Add explanation about time loop
+            Label timeLoopLabel = new Label("A player has reached 0 health! The time loop has been activated.");
+            timeLoopLabel.setFont(Font.font("System", FontWeight.BOLD, 14));
+            timeLoopLabel.setTextFill(Color.LIGHTYELLOW);
+            resultBox.getChildren().add(timeLoopLabel);
+        }
+        
         continueButton.setOnAction(event -> {
             if (anyDefeated) {
-                // Game over if any player is defeated
-                showGameResult("Game Over! Some players have been defeated!");
+                // Start time loop mechanic when a player is defeated
+                beginTimeLoop();
             } else {
                 presentNextObstacle();
             }
@@ -1389,6 +1434,212 @@ public class GameScreen {
             }
         }
         return false;
+    }
+    
+    /**
+     * Begins the time loop mechanic when a player is defeated.
+     */
+    private void beginTimeLoop() {
+        // Reset the obstacle deck to its original order without shuffling
+        resetObstacleDeckToOriginalOrder();
+        
+        // Show the card removal screen for each player
+        showCardRemovalScreen();
+    }
+    
+    /**
+     * Shows a screen allowing each player to select a card to remove from their deck.
+     */
+    private void showCardRemovalScreen() {
+        centerPanel.getChildren().clear();
+        
+        // Create a scrollable panel for all players' card selections
+        ScrollPane scrollPane = new ScrollPane();
+        scrollPane.setFitToWidth(true);
+        scrollPane.setPrefHeight(600);
+        scrollPane.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
+        
+        VBox allPlayersBox = new VBox(20);
+        allPlayersBox.setPadding(new Insets(10));
+        allPlayersBox.setAlignment(Pos.TOP_CENTER);
+        
+        Label titleLabel = new Label("Time Loop Activated");
+        titleLabel.setFont(Font.font("System", FontWeight.BOLD, 28));
+        titleLabel.setTextFill(Color.WHITE);
+        
+        Label instructionsLabel = new Label("Each player must select ONE card to remove from their deck before continuing");
+        instructionsLabel.setFont(Font.font("System", 18));
+        instructionsLabel.setTextFill(Color.LIGHTBLUE);
+        
+        allPlayersBox.getChildren().addAll(titleLabel, instructionsLabel);
+        
+        // Map to track selected cards for each player
+        Map<Player, Card> selectedCardsToRemove = new HashMap<>();
+        
+        // Continue button (enabled only when all players have selected a card)
+        Button continueButton = new Button("Continue to Next Loop");
+        continueButton.setDisable(true);
+        
+        // Update the continue button state whenever a card is selected
+        Runnable updateContinueButtonState = () -> {
+            continueButton.setDisable(selectedCardsToRemove.size() < players.size());
+        };
+        
+        // Create card display for each player
+        for (Player player : players) {
+            VBox playerBox = new VBox(10);
+            playerBox.setPadding(new Insets(10));
+            playerBox.setStyle("-fx-background-color: #2d4b6e; -fx-background-radius: 8;");
+            
+            Label playerLabel = new Label(player.getName() + "'s Cards");
+            playerLabel.setFont(Font.font("System", FontWeight.BOLD, 16));
+            playerLabel.setTextFill(Color.WHITE);
+            
+            // Label to show selected card
+            Label selectedCardLabel = new Label("No card selected");
+            selectedCardLabel.setFont(Font.font("System", 14));
+            selectedCardLabel.setTextFill(Color.ORANGE);
+            
+            playerBox.getChildren().addAll(playerLabel, selectedCardLabel);
+            
+            // Create a flow pane for all of the player's cards
+            FlowPane cardsPane = new FlowPane(5, 5);
+            cardsPane.setPadding(new Insets(5));
+            
+            // Get all of the player's cards (deck and hand combined)
+            List<Card> allPlayerCards = new ArrayList<>();
+            allPlayerCards.addAll(player.getDeck().getDrawPile());
+            allPlayerCards.addAll(player.getDeck().getHand());
+            allPlayerCards.addAll(player.getDeck().getDiscardPile());
+            
+            // Display all cards
+            for (Card card : allPlayerCards) {
+                StackPane cardPane = new StackPane();
+                cardPane.setAlignment(Pos.BOTTOM_RIGHT);
+                
+                // Create the card visual
+                boolean imageLoaded = false;
+                
+                // Try all possible paths for the card image
+                String[] possiblePaths = {
+                    "/cards/" + card.getId() + ".jpg",
+                    "/cards/skills/" + card.getId() + ".jpg", 
+                    "/cards/tools/" + card.getId() + ".jpg"
+                };
+                
+                for (String path : possiblePaths) {
+                    try {
+                        InputStream is = getClass().getResourceAsStream(path);
+                        if (is != null) {
+                            Image cardImage = new Image(is);
+                            ImageView cardView = new ImageView(cardImage);
+                            cardView.setFitWidth(CARD_WIDTH * 1.5);
+                            cardView.setFitHeight(CARD_HEIGHT * 1.5);
+                            
+                            Rectangle border = new Rectangle(
+                                CARD_WIDTH * 1.5, 
+                                CARD_HEIGHT * 1.5,
+                                Color.TRANSPARENT
+                            );
+                            border.setStroke(Color.GRAY);
+                            border.setStrokeWidth(1);
+                            
+                            cardPane.getChildren().addAll(cardView, border);
+                            
+                            // Add tooltip for card details
+                            Tooltip cardTooltip = createCardTooltip(card);
+                            Tooltip.install(cardPane, cardTooltip);
+                            
+                            imageLoaded = true;
+                            break;
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error loading card image for " + card.getId() + ": " + e.getMessage());
+                    }
+                }
+                
+                // If no image was loaded, create a placeholder
+                if (!imageLoaded) {
+                    Rectangle placeholder = new Rectangle(CARD_WIDTH * 1.5, CARD_HEIGHT * 1.5, Color.DARKGRAY);
+                    Text cardNameText = new Text(card.getName());
+                    cardNameText.setFill(Color.WHITE);
+                    cardNameText.setWrappingWidth(CARD_WIDTH * 1.3);
+                    cardNameText.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+                    
+                    cardPane.getChildren().addAll(placeholder, cardNameText);
+                }
+                
+                // Make cards selectable
+                cardPane.setOnMouseClicked(event -> {
+                    // Clear previous selection styling
+                    for (int i = 0; i < cardsPane.getChildren().size(); i++) {
+                        Node node = cardsPane.getChildren().get(i);
+                        if (node instanceof StackPane) {
+                            StackPane pane = (StackPane) node;
+                            // Reset border
+                            for (int j = 0; j < pane.getChildren().size(); j++) {
+                                if (pane.getChildren().get(j) instanceof Rectangle) {
+                                    ((Rectangle) pane.getChildren().get(j)).setStroke(Color.GRAY);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Highlight selected card
+                    for (Node node : cardPane.getChildren()) {
+                        if (node instanceof Rectangle) {
+                            ((Rectangle) node).setStroke(Color.YELLOW);
+                            ((Rectangle) node).setStrokeWidth(3);
+                            break;
+                        }
+                    }
+                    
+                    // Update selected card
+                    selectedCardsToRemove.put(player, card);
+                    selectedCardLabel.setText("Selected: " + card.getName());
+                    
+                    // Update continue button state
+                    updateContinueButtonState.run();
+                });
+                
+                cardsPane.getChildren().add(cardPane);
+            }
+            
+            playerBox.getChildren().add(cardsPane);
+            allPlayersBox.getChildren().add(playerBox);
+        }
+        
+        // Continue button action
+        continueButton.setOnAction(event -> {
+            // Remove the selected cards from each player's deck
+            for (Map.Entry<Player, Card> entry : selectedCardsToRemove.entrySet()) {
+                Player player = entry.getKey();
+                Card cardToRemove = entry.getValue();
+                
+                // Remove the card from player's deck
+                player.getDeck().removeCard(cardToRemove);
+                
+                // Heal player back to full health
+                player.heal(player.getSelectedCharacter().getHealth());
+            }
+            
+            // Shuffle remaining cards in each deck
+            for (Player player : players) {
+                player.getDeck().shuffle();
+                player.getDeck().drawCards(3); // Draw initial hand
+            }
+            
+            // Start a new game loop
+            presentNextObstacle();
+        });
+        
+        // Initial update of the continue button
+        updateContinueButtonState.run();
+        
+        allPlayersBox.getChildren().add(continueButton);
+        scrollPane.setContent(allPlayersBox);
+        centerPanel.getChildren().add(scrollPane);
     }
     
     /**
