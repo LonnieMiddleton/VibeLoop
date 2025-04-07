@@ -10,10 +10,13 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
@@ -50,18 +53,41 @@ public class CharacterSelectionScreen {
      * Shows the character selection screen.
      */
     public void show() {
+        // Load background image
+        Image backgroundImage = null;
+        try {
+            backgroundImage = new Image(getClass().getResourceAsStream("/station.jpg"));
+        } catch (Exception e) {
+            System.err.println("Error loading background image: " + e.getMessage());
+        }
+        
+        // Create background image view
+        ImageView backgroundView = new ImageView(backgroundImage);
+        backgroundView.setPreserveRatio(false); // Allow stretching to fill the screen
+        backgroundView.fitWidthProperty().bind(stage.widthProperty());
+        backgroundView.fitHeightProperty().bind(stage.heightProperty());
+        
+        // Create a semi-transparent overlay to improve text readability
+        javafx.scene.shape.Rectangle overlay = new javafx.scene.shape.Rectangle();
+        overlay.widthProperty().bind(stage.widthProperty());
+        overlay.heightProperty().bind(stage.heightProperty());
+        overlay.setFill(Color.rgb(0, 0, 0, 0.5)); // semi-transparent black
+        
         // Create main layout
-        BorderPane root = new BorderPane();
-        root.setStyle("-fx-background-color: linear-gradient(to bottom, #1a2a6c, #b21f1f, #fdbb2d);");
+        StackPane root = new StackPane();
+        
+        // Create panel containing all the UI elements
+        BorderPane uiPanel = new BorderPane();
         
         // Create header
         Text headerText = new Text("Select Your Characters");
         headerText.setFont(Font.font("System", FontWeight.BOLD, 36));
         headerText.setFill(Color.WHITE);
+        headerText.setEffect(new DropShadow(10, Color.BLACK)); // Add shadow for better readability
         
         StackPane header = new StackPane(headerText);
         header.setPadding(new Insets(20));
-        root.setTop(header);
+        uiPanel.setTop(header);
         
         // Create grid of character selection panels
         GridPane grid = new GridPane();
@@ -76,17 +102,21 @@ public class CharacterSelectionScreen {
         grid.add(new CharacterSelectionPanel(players.get(2), characterService), 0, 1);
         grid.add(new CharacterSelectionPanel(players.get(3), characterService), 1, 1);
         
-        root.setCenter(grid);
+        uiPanel.setCenter(grid);
         
         // Start game button
         Button startButton = new Button("Start Game");
-        startButton.setFont(Font.font(18));
+        startButton.setFont(Font.font("System", FontWeight.BOLD, 18));
         startButton.setPrefSize(200, 50);
+        startButton.setStyle("-fx-background-color: #4287f5; -fx-text-fill: white; -fx-background-radius: 10;");
         startButton.setOnAction(e -> startGame());
         
         StackPane footer = new StackPane(startButton);
         footer.setPadding(new Insets(20));
-        root.setBottom(footer);
+        uiPanel.setBottom(footer);
+        
+        // Add all layers to the root stack pane (background at the bottom, UI on top)
+        root.getChildren().addAll(backgroundView, overlay, uiPanel);
         
         // Create and display the scene
         Scene scene = new Scene(root, 1024, 768);
