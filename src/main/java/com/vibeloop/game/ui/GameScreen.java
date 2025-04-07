@@ -820,10 +820,10 @@ public class GameScreen {
         if (originalObstacleDeckOrder.isEmpty()) {
             // This is the first game, create and store the original obstacle deck
             obstacleDeck = obstacleService.createObstacleDeck();
-            // Store the original order before shuffling
-            originalObstacleDeckOrder = new ArrayList<>(obstacleDeck.getAllCards());
-            // Shuffle for the first game
+            // Shuffle for the first game - this will establish the sequence for all loops in this game
             obstacleDeck.shuffle();
+            // Store the original order AFTER shuffling - this preserves the shuffled order for subsequent loops
+            originalObstacleDeckOrder = new ArrayList<>(obstacleDeck.getAllCards());
             
             // Reset loop variables
             currentLoop = 1;
@@ -833,14 +833,16 @@ public class GameScreen {
             resetObstacleDeckToOriginalOrder();
             
             // Reset the game entirely if player chooses "Play Again" at the end
-            currentLoop = 1;
-            maxObstaclesPassed = 0;
+            if (currentLoop == 1) {
+                // This is a new game (via "Play Again"), so shuffle the deck to get a different sequence
+                obstacleDeck.shuffle();
+                // And store the new shuffled order
+                originalObstacleDeckOrder = new ArrayList<>(obstacleDeck.getAllCards());
+            }
+            // Otherwise, for time loops within the same game, we use the same obstacle sequence
             
             // Clear obstacle history
             obstacleHistory.clear();
-            
-            // Shuffle the obstacles for a new complete game
-            obstacleDeck.shuffle();
         }
         
         // Reset all players' health to full
@@ -1939,7 +1941,12 @@ public class GameScreen {
         messageLabel.setTextFill(Color.WHITE);
         
         Button restartButton = new Button("Play Again");
-        restartButton.setOnAction(event -> startGame());
+        restartButton.setOnAction(event -> {
+            // Reset loop variables for a new game
+            currentLoop = 1;
+            maxObstaclesPassed = 0;
+            startGame();
+        });
         
         resultBox.getChildren().addAll(titleLabel, messageLabel, restartButton);
         centerPanel.getChildren().add(resultBox);
