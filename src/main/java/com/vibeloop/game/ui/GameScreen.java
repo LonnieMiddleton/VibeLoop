@@ -6,6 +6,7 @@ import com.vibeloop.game.model.Character;
 import com.vibeloop.game.model.ObstacleCard;
 import com.vibeloop.game.model.ObstacleDeck;
 import com.vibeloop.game.service.ObstacleService;
+import com.vibeloop.game.service.CardService;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -49,6 +50,7 @@ public class GameScreen {
     private final Stage stage;
     private final List<Player> players;
     private final ObstacleService obstacleService;
+    private final CardService cardService;
     private ObstacleDeck obstacleDeck;
     private ObstacleCard currentObstacle;
     private Map<Player, Card> playedCards;
@@ -97,6 +99,7 @@ public class GameScreen {
         this.stage = stage;
         this.players = players;
         this.obstacleService = obstacleService;
+        this.cardService = new CardService();
         this.obstacleDeck = obstacleService.createObstacleDeck();
         this.playedCards = new HashMap<>();
         this.playerHandPanes = new HashMap<>();
@@ -1370,6 +1373,10 @@ public class GameScreen {
         if (succeeded) {
             // Success! Players overcome the obstacle
             obstacleDeck.defeatObstacle(currentObstacle);
+            
+            // Add a random card to a random player's deck as reward for success
+            addRandomCardToRandomPlayer();
+            
             showObstacleResult("Success! Obstacle Overcome", 
                               "Total Skill: " + totalSkill + " vs. Difficulty: " + obstacleDifficulty + "\n\n" +
                               skillBreakdown.toString(),
@@ -1385,6 +1392,49 @@ public class GameScreen {
                               skillBreakdown.toString(),
                               false);
         }
+    }
+    
+    /**
+     * Adds a random card to a randomly selected player's deck.
+     * Called as a reward when players successfully overcome an obstacle.
+     */
+    private void addRandomCardToRandomPlayer() {
+        if (players.isEmpty()) {
+            return;
+        }
+        
+        // Select a random player
+        int randomPlayerIndex = (int) (Math.random() * players.size());
+        Player selectedPlayer = players.get(randomPlayerIndex);
+        
+        // Get all available cards
+        Map<String, Card> allCards = cardService.getAllCards();
+        if (allCards.isEmpty()) {
+            return;
+        }
+        
+        // Convert to list to be able to get a random card
+        List<Card> cardList = new ArrayList<>(allCards.values());
+        int randomCardIndex = (int) (Math.random() * cardList.size());
+        Card randomCard = cardList.get(randomCardIndex);
+        
+        // Add a copy of the card to the player's deck
+        Card newCard = new Card(
+            randomCard.getId(),
+            randomCard.getName(),
+            randomCard.getDescription(),
+            randomCard.getStat(),
+            randomCard.getCompatibleTypes()
+        );
+        
+        // Add to player's deck (cards collection) and discard pile rather than draw pile
+        selectedPlayer.getDeck().addCardToDiscard(newCard);
+        
+        // Display message about the new card
+        System.out.println("New card awarded to " + selectedPlayer.getName() + ": " + newCard.getName() + " (added to discard pile)");
+        
+        // Update UI to reflect the new card in the deck
+        updatePlayerUI(selectedPlayer);
     }
     
     /**
@@ -1445,13 +1495,21 @@ public class GameScreen {
         titleLabel.setTextFill(Color.WHITE);
         
         Label messageLabel = new Label(message);
-        messageLabel.setFont(Font.font("System", 16));
+        messageLabel.setFont(Font.font("System", 20));
         messageLabel.setTextFill(Color.WHITE);
         
         // Check if any player is defeated
         final boolean anyDefeated = isAnyPlayerDefeated();
         
         Button continueButton = new Button("Continue");
+        
+        // Add notification about awarded card if success
+        if (success) {
+            Label rewardLabel = new Label("A random card has been added to one player's deck!");
+            rewardLabel.setFont(Font.font("System", FontWeight.BOLD, 16));
+            rewardLabel.setTextFill(Color.YELLOW);
+            resultBox.getChildren().add(rewardLabel);
+        }
         
         if (anyDefeated) {
             // Update button text for time loop
@@ -1678,15 +1736,41 @@ public class GameScreen {
                 
                 // Remove the card from player's deck
                 player.getDeck().removeCard(cardToRemove);
-                
-                // Heal player back to full health
-                player.heal(player.getSelectedCharacter().getHealth());
+                System.out.println("Removed card " + cardToRemove.getName() + " from " + player.getName() + "'s deck");
             }
             
-            // Shuffle remaining cards in each deck
+            // For each player: reset health, move all cards to draw pile, and shuffle
             for (Player player : players) {
-                player.getDeck().shuffle();
-                player.getDeck().drawCards(3); // Draw initial hand
+                // Print initial state
+                System.out.println("BEFORE RESET - " + player.getName() + " has: " + 
+                                  player.getDeck().getDrawPile().size() + " in draw pile, " + 
+                                  player.getDeck().getHand().size() + " in hand, " + 
+                                  player.getDeck().getDiscardPile().size() + " in discard, " + 
+                                  player.getDeck().getCards().size() + " total cards");
+                
+                // Reset player health to full
+                player.heal(player.getSelectedCharacter().getHealth());
+                
+                // Reset the player's deck for the time loop - moves all cards from hand and discard to draw pile and shuffles
+                player.getDeck().resetDeckForTimeLoop();
+                
+                // Print state after reset
+                System.out.println("AFTER RESET - " + player.getName() + " has: " + 
+                                  player.getDeck().getDrawPile().size() + " in draw pile, " + 
+                                  player.getDeck().getHand().size() + " in hand, " + 
+                                  player.getDeck().getDiscardPile().size() + " in discard");
+                
+                // Draw initial hand of 3 cards (or as many as possible)
+                player.getDeck().drawCards(3);
+                
+                // Print final state
+                System.out.println("FINAL STATE - " + player.getName() + " now has " + 
+                                  player.getDeck().getDrawPile().size() + " cards in draw pile, " + 
+                                  player.getDeck().getHand().size() + " cards in hand, and " + 
+                                  player.getDeck().getDiscardPile().size() + " cards in discard pile");
+                
+                // Update the UI to show the current state of the player's deck
+                updatePlayerUI(player);
             }
             
             // Start a new game loop

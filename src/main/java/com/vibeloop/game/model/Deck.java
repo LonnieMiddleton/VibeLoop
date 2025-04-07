@@ -73,6 +73,31 @@ public class Deck {
         shuffle();
     }
     
+    /**
+     * Resets the deck for the time loop mechanic.
+     * Moves all cards from hand and discard pile back to the draw pile.
+     */
+    public void resetDeckForTimeLoop() {
+        // Get the main collection of all remaining cards (after any removals)
+        List<Card> allRemainingCards = new ArrayList<>(cards);
+        
+        // Clear everything
+        drawPile.clear();
+        hand.clear();
+        discardPile.clear();
+        
+        // Put all remaining cards into the draw pile
+        drawPile.addAll(allRemainingCards);
+        
+        // Shuffle the deck
+        shuffle();
+        
+        System.out.println("Reset deck complete. Total cards: " + cards.size() + 
+                          ", Draw pile: " + drawPile.size() + 
+                          ", Hand: " + hand.size() + 
+                          ", Discard: " + discardPile.size());
+    }
+    
     public List<Card> getCards() {
         return Collections.unmodifiableList(cards);
     }
@@ -87,6 +112,16 @@ public class Deck {
     
     public List<Card> getDiscardPile() {
         return Collections.unmodifiableList(discardPile);
+    }
+    
+    /**
+     * Adds a card to the deck and discard pile.
+     * 
+     * @param card the card to add
+     */
+    public void addCardToDiscard(Card card) {
+        cards.add(card);
+        discardPile.add(card);
     }
     
     /**
