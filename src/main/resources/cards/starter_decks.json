@@ -16,7 +16,7 @@
   "pilot": {
     "cards": [
       "push_through",
-      "evasive_maneuvers",
+      "quick_maneuver",
       "tactical_maneuver"
     ]
   },

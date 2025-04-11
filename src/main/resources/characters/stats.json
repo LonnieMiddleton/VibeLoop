@@ -34,9 +34,9 @@
   "engineer": {
     "name": "Engineer",
     "strength": 2,
-    "speed": 1,
+    "speed": 2,
     "tech": 4,
-    "health": 4,
+    "health": 3,
     "description": "Master of complex systems and high-tech solutions."
   },
   "scientist": {

@@ -5,9 +5,9 @@
     "stat": "strength",
     "compatibleTypes": ["barrier"]
   },
-  "quick_strike": {
-    "name": "Quick Strike",
-    "description": "A fast attack that catches enemies off guard.",
+  "quick_maneuver": {
+    "name": "Quick Maneuver",
+    "description": "Thinking on your feet is sometimes better than fancy tech.",
     "stat": "speed",
     "compatibleTypes": ["personnel"]
   },
@@ -41,17 +41,11 @@
     "stat": "tech",
     "compatibleTypes": ["barrier"]
   },
-  "analyze_weakness": {
-    "name": "Analyze Weakness",
-    "description": "Carefully observe the target to find vulnerabilities.",
+  "analyze": {
+    "name": "Analyze",
+    "description": "Scan for useful information.",
     "stat": "tech",
     "compatibleTypes": ["barrier", "hazard", "environment", "personnel"]
-  },
-  "evasive_maneuvers": {
-    "name": "Evasive Maneuvers",
-    "description": "Quickly dodge to avoid incoming attacks.",
-    "stat": "speed",
-    "compatibleTypes": ["hazard", "environment"]
   },
   "adrenaline_rush": {
     "name": "Adrenaline Rush",
