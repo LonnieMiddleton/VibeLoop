@@ -23,20 +23,20 @@
   "soldier": {
     "cards": [
       "push_through",
-      "quick_strike",
+      "quick_maneuver",
       "shield_up"
     ]
   },
   "engineer": {
     "cards": [
       "repair_kit",
-      "analyze_weakness",
+      "analyze",
       "neural_interface"
     ]
   },
   "scientist": {
     "cards": [
-      "analyze_weakness",
+      "analyze",
       "data_recovery_module",
       "temporal_accelerator"
     ]

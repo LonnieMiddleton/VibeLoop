@@ -7,6 +7,7 @@ import com.vibeloop.game.model.ObstacleCard;
 import com.vibeloop.game.model.ObstacleDeck;
 import com.vibeloop.game.service.ObstacleService;
 import com.vibeloop.game.service.CardService;
+import com.vibeloop.game.service.GameConfigService;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -52,6 +53,7 @@ public class GameScreen {
     private final List<Player> players;
     private final ObstacleService obstacleService;
     private final CardService cardService;
+    private final GameConfigService configService;
     private ObstacleDeck obstacleDeck;
     private ObstacleCard currentObstacle;
     private Map<Player, Card> playedCards;
@@ -108,6 +110,7 @@ public class GameScreen {
         this.players = players;
         this.obstacleService = obstacleService;
         this.cardService = new CardService();
+        this.configService = new GameConfigService();
         this.obstacleDeck = obstacleService.createObstacleDeck();
         this.playedCards = new HashMap<>();
         this.playerHandPanes = new HashMap<>();
@@ -115,15 +118,16 @@ public class GameScreen {
         this.playerTurnArrows = new HashMap<>();
         this.originalObstacleDeckOrder = new ArrayList<>(obstacleDeck.getAllCards());
         this.obstacleHistory = new ArrayList<>();
+        
+        // Log deck configuration
+        System.out.println("Created obstacle deck with " + this.obstacleDeck.getAllCards().size() + 
+                          " cards, shuffle setting: " + configService.shouldShuffleObstacleDeck());
     }
     
     /**
      * Shows the game screen with player profiles, decks, and hands.
      */
     public void show() {
-        // Initialize players' hands
-        initializePlayersHands();
-        
         // Create main layout
         BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color: #1e3d59;");
@@ -155,8 +159,24 @@ public class GameScreen {
      */
     private void initializePlayersHands() {
         for (Player player : players) {
+            System.out.println("\n=== Initializing hand for " + player.getName() + " (" + player.getSelectedCharacter().getType() + ") ===");
+            System.out.println("Before shuffle - Draw pile size: " + player.getDeck().getDrawPile().size());
+            
             player.getDeck().shuffle();
+            System.out.println("After shuffle - Draw pile size: " + player.getDeck().getDrawPile().size());
+            
+            System.out.println("Drawing initial hand...");
+            int initialHandSize = player.getDeck().getHand().size();
             player.getDeck().drawCards(3);
+            int finalHandSize = player.getDeck().getHand().size();
+            
+            System.out.println("Cards drawn: " + (finalHandSize - initialHandSize));
+            System.out.println("Current hand size: " + player.getDeck().getHand().size());
+            System.out.println("Remaining draw pile size: " + player.getDeck().getDrawPile().size());
+            System.out.println("Cards in hand:");
+            for (Card card : player.getDeck().getHand()) {
+                System.out.println("- " + card.getName() + " (" + card.getStat() + ")");
+            }
         }
     }
     
@@ -817,30 +837,34 @@ public class GameScreen {
     }
     
     /**
-     * Starts the game by initializing the obstacle deck and presenting the first obstacle.
+     * Starts a new game or time loop.
      */
     private void startGame() {
+        System.out.println("\n=== Starting New Game ===");
         // Initialize the obstacle deck if we're starting a brand new game
         if (originalObstacleDeckOrder.isEmpty()) {
+            System.out.println("First game - Creating and shuffling new obstacle deck");
             // This is the first game, create and store the original obstacle deck
             obstacleDeck = obstacleService.createObstacleDeck();
-            // Shuffle for the first game - this will establish the sequence for all loops in this game
-            obstacleDeck.shuffle();
-            // Store the original order AFTER shuffling - this preserves the shuffled order for subsequent loops
+            // The shuffle is handled by ObstacleService based on config settings
+            
+            // Store the original order AFTER potential shuffling - this preserves the order for subsequent loops
             originalObstacleDeckOrder = new ArrayList<>(obstacleDeck.getAllCards());
             
             // Reset loop variables
             currentLoop = 1;
             maxObstaclesPassed = 0;
         } else {
-            // For subsequent games (after time loops), reset to original order without shuffling
+            System.out.println("Subsequent game/loop - Resetting obstacle deck to original order");
+            // For subsequent games (after time loops), reset to original order
             resetObstacleDeckToOriginalOrder();
             
             // Reset the game entirely if player chooses "Play Again" at the end
             if (currentLoop == 1) {
-                // This is a new game (via "Play Again"), so shuffle the deck to get a different sequence
-                obstacleDeck.shuffle();
-                // And store the new shuffled order
+                System.out.println("New game via 'Play Again' - Creating new obstacle deck");
+                // This is a new game (via "Play Again"), so create a new deck
+                obstacleDeck = obstacleService.createObstacleDeck();
+                // And store the new order
                 originalObstacleDeckOrder = new ArrayList<>(obstacleDeck.getAllCards());
             }
             // Otherwise, for time loops within the same game, we use the same obstacle sequence
@@ -849,11 +873,29 @@ public class GameScreen {
             obstacleHistory.clear();
         }
         
+        System.out.println("Obstacle deck size: " + obstacleDeck.getDrawPile().size());
+        
+        System.out.println("\n=== Resetting Players ===");
         // Reset all players' health to full
         for (Player player : players) {
+            System.out.println("Resetting " + player.getName() + " (" + player.getSelectedCharacter().getType() + ")");
+            System.out.println("Initial deck state:");
+            System.out.println("- Draw pile: " + player.getDeck().getDrawPile().size());
+            System.out.println("- Hand: " + player.getDeck().getHand().size());
+            System.out.println("- Discard: " + player.getDeck().getDiscardPile().size());
+            
             player.heal(player.getSelectedCharacter().getHealth());
             updatePlayerUI(player);
+            
+            System.out.println("After reset:");
+            System.out.println("- Draw pile: " + player.getDeck().getDrawPile().size());
+            System.out.println("- Hand: " + player.getDeck().getHand().size());
+            System.out.println("- Discard: " + player.getDeck().getDiscardPile().size());
         }
+        
+        // Initialize players' hands
+        System.out.println("\n=== Initializing Player Hands ===");
+        initializePlayersHands();
         
         // Start with the first player
         currentPlayerIndex = 0;
@@ -876,6 +918,13 @@ public class GameScreen {
         
         // Reset active and defeated obstacles
         obstacleDeck.clearObstacles();
+        
+        // In time loops (currentLoop > 1), we want to maintain the same card order
+        // But for new games (currentLoop == 1), check the config shuffle setting
+        if (currentLoop == 1 && configService.shouldShuffleObstacleDeck()) {
+            System.out.println("Shuffling obstacle deck based on config setting");
+            obstacleDeck.shuffle();
+        }
     }
     
     /**

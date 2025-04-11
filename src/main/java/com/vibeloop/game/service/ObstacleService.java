@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,9 +21,11 @@ import javax.json.JsonReader;
  */
 public class ObstacleService {
     private Map<String, ObstacleCard> obstacleCards;
+    private GameConfigService configService;
     
     public ObstacleService() {
         obstacleCards = new HashMap<>();
+        configService = new GameConfigService();
         loadObstacleCards();
     }
     
@@ -87,12 +90,30 @@ public class ObstacleService {
     public ObstacleDeck createObstacleDeck() {
         ObstacleDeck deck = new ObstacleDeck();
         
-        // Add all obstacle cards to the deck
-        for (ObstacleCard card : obstacleCards.values()) {
+        // Get all obstacle cards
+        List<ObstacleCard> allCards = new ArrayList<>(obstacleCards.values());
+        
+        // Get deck size from config
+        int deckSize = configService.getObstacleDeckSize();
+        
+        // If deckSize is less than total cards, randomly select cards
+        if (deckSize < allCards.size()) {
+            // Shuffle the list to get random selection
+            Collections.shuffle(allCards);
+            // Take the first 'deckSize' cards
+            allCards = allCards.subList(0, deckSize);
+        }
+        
+        // Add selected cards to the deck
+        for (ObstacleCard card : allCards) {
             deck.addCard(card);
         }
         
-        deck.shuffle();
+        // Shuffle only if configured to do so
+        if (configService.shouldShuffleObstacleDeck()) {
+            deck.shuffle();
+        }
+        
         return deck;
     }
     
@@ -105,14 +126,35 @@ public class ObstacleService {
     public ObstacleDeck createObstacleDeck(int difficulty) {
         ObstacleDeck deck = new ObstacleDeck();
         
-        // Add obstacle cards that match the difficulty level or lower
+        // Get all obstacle cards that match the difficulty level or lower
+        List<ObstacleCard> matchingCards = new ArrayList<>();
         for (ObstacleCard card : obstacleCards.values()) {
             if (card.getDifficulty() <= difficulty) {
-                deck.addCard(card);
+                matchingCards.add(card);
             }
         }
         
-        deck.shuffle();
+        // Get deck size from config
+        int deckSize = configService.getObstacleDeckSize();
+        
+        // If deckSize is less than matching cards, randomly select cards
+        if (deckSize < matchingCards.size()) {
+            // Shuffle the list to get random selection
+            Collections.shuffle(matchingCards);
+            // Take the first 'deckSize' cards
+            matchingCards = matchingCards.subList(0, deckSize);
+        }
+        
+        // Add selected cards to the deck
+        for (ObstacleCard card : matchingCards) {
+            deck.addCard(card);
+        }
+        
+        // Shuffle only if configured to do so
+        if (configService.shouldShuffleObstacleDeck()) {
+            deck.shuffle();
+        }
+        
         return deck;
     }
-} 
+}
