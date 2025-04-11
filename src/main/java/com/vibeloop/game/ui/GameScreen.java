@@ -1118,68 +1118,156 @@ public class GameScreen {
         
         // Add required skills
         String[] requiredSkills = currentObstacle.getRequiredSkills();
-        StringBuilder skillsText = new StringBuilder("Required Skills: ");
-        for (int i = 0; i < requiredSkills.length; i++) {
-            skillsText.append(requiredSkills[i]);
-            if (i < requiredSkills.length - 1) {
-                skillsText.append(", ");
-            }
-        }
         
-        Label skillsLabel = new Label(skillsText.toString());
-        skillsLabel.setFont(Font.font("System", isFinale ? 16 : 14));
-        skillsLabel.setTextFill(isFinale ? Color.LIGHTYELLOW : Color.WHITE);
-        
-        // Add description
-        Label descriptionLabel = new Label(currentObstacle.getDescription());
-        descriptionLabel.setFont(Font.font("System", isFinale ? 16 : 14));
-        descriptionLabel.setTextFill(Color.WHITE);
-        descriptionLabel.setWrapText(true);
-        descriptionLabel.setMaxWidth(500);
-        
-        // Add progress bar
-        ProgressBar progressBar = new ProgressBar(0);
-        progressBar.setPrefWidth(300);
-        progressBar.setStyle(isFinale ? "-fx-accent: red;" : "-fx-accent: #4287f5;");
-        
-        // Calculate progress
-        int totalProgress = 0;
-        
-        // Calculate current progress from played cards
-        for (Map.Entry<Player, Card> entry : playedCards.entrySet()) {
-            Player player = entry.getKey();
-            Card card = entry.getValue();
+        if (isFinale) {
+            // For finale, show the specific requirements for each obstacle type
+            Label skillsLabel = new Label("This challenge requires different obstacle types to be resolved:");
+            skillsLabel.setFont(Font.font("System", 16));
+            skillsLabel.setTextFill(Color.LIGHTYELLOW);
             
-            if (card != null && card.isCompatibleWithType(currentObstacle.getType())) {
-                String cardStat = card.getStat().toLowerCase();
-                for (String requiredSkill : currentObstacle.getRequiredSkills()) {
-                    if (cardStat.equals(requiredSkill.toLowerCase())) {
-                        switch (cardStat) {
-                            case "strength":
-                                totalProgress += player.getSelectedCharacter().getStrength();
-                                break;
-                            case "speed":
-                                totalProgress += player.getSelectedCharacter().getSpeed();
-                                break;
-                            case "tech":
-                                totalProgress += player.getSelectedCharacter().getTech();
-                                break;
+            // Create a special breakdown of required obstacle types
+            VBox requirementsBox = new VBox(5);
+            requirementsBox.setAlignment(Pos.CENTER_LEFT);
+            requirementsBox.setPadding(new Insets(10));
+            requirementsBox.setStyle("-fx-background-color: rgba(0,0,0,0.3); -fx-background-radius: 5;");
+            
+            // Calculate current progress on each obstacle type
+            int currentEnvironment = 0;
+            int currentHazard = 0;
+            int currentBarrier = 0;
+            
+            for (Map.Entry<Player, Card> entry : playedCards.entrySet()) {
+                Player player = entry.getKey();
+                Card card = entry.getValue();
+                
+                if (card != null) {
+                    // Get the card's contribution based on player's stats
+                    int contribution = currentObstacle.getCardContribution(card, player);
+                    
+                    // Check each of the card's compatible types
+                    for (String cardType : card.getCompatibleTypes()) {
+                        if ("environment".equalsIgnoreCase(cardType)) {
+                            currentEnvironment += contribution;
+                        } else if ("hazard".equalsIgnoreCase(cardType)) {
+                            currentHazard += contribution;
+                        } else if ("barrier".equalsIgnoreCase(cardType)) {
+                            currentBarrier += contribution;
                         }
                     }
                 }
             }
+            
+            int environmentRequired = currentObstacle.getEnvironmentRequired();
+            int hazardRequired = currentObstacle.getHazardRequired();
+            int barrierRequired = currentObstacle.getBarrierRequired();
+            
+            // Create progress bars for each type
+            Label environmentLabel = new Label("Environment: " + currentEnvironment + "/" + environmentRequired);
+            environmentLabel.setTextFill(Color.LIGHTBLUE);
+            environmentLabel.setFont(Font.font("System", FontWeight.BOLD, 14));
+            ProgressBar environmentBar = new ProgressBar(Math.min(1.0, (double)currentEnvironment / environmentRequired));
+            environmentBar.setPrefWidth(300);
+            environmentBar.setStyle("-fx-accent: #1e90ff;"); // Dodger blue
+            
+            Label hazardLabel = new Label("Hazard: " + currentHazard + "/" + hazardRequired);
+            hazardLabel.setTextFill(Color.LIGHTSALMON);
+            hazardLabel.setFont(Font.font("System", FontWeight.BOLD, 14));
+            ProgressBar hazardBar = new ProgressBar(Math.min(1.0, (double)currentHazard / hazardRequired));
+            hazardBar.setPrefWidth(300);
+            hazardBar.setStyle("-fx-accent: #ff6347;"); // Tomato color
+            
+            Label barrierLabel = new Label("Barrier: " + currentBarrier + "/" + barrierRequired);
+            barrierLabel.setTextFill(Color.LIGHTGREEN);
+            barrierLabel.setFont(Font.font("System", FontWeight.BOLD, 14));
+            ProgressBar barrierBar = new ProgressBar(Math.min(1.0, (double)currentBarrier / barrierRequired));
+            barrierBar.setPrefWidth(300);
+            barrierBar.setStyle("-fx-accent: #32cd32;"); // Lime green
+            
+            requirementsBox.getChildren().addAll(
+                new HBox(10, environmentLabel, environmentBar),
+                new HBox(10, hazardLabel, hazardBar),
+                new HBox(10, barrierLabel, barrierBar)
+            );
+            
+            // Add a note about using any skill type
+            Label compatibilityNote = new Label("Any skill (strength, speed, tech) can be used for any obstacle type!");
+            compatibilityNote.setTextFill(Color.YELLOW);
+            compatibilityNote.setFont(Font.font("System", FontWeight.BOLD, 14));
+            requirementsBox.getChildren().add(compatibilityNote);
+            
+            // Add description
+            Label descriptionLabel = new Label(currentObstacle.getDescription());
+            descriptionLabel.setFont(Font.font("System", 16));
+            descriptionLabel.setTextFill(Color.WHITE);
+            descriptionLabel.setWrapText(true);
+            descriptionLabel.setMaxWidth(500);
+            
+            obstacleBox.getChildren().addAll(nameLabel, difficultyLabel, typeLabel, skillsLabel, requirementsBox, descriptionLabel);
+        } else {
+            // Regular skill display for normal obstacles
+            StringBuilder skillsText = new StringBuilder("Required Skills: ");
+            for (int i = 0; i < requiredSkills.length; i++) {
+                skillsText.append(requiredSkills[i]);
+                if (i < requiredSkills.length - 1) {
+                    skillsText.append(", ");
+                }
+            }
+            
+            Label skillsLabel = new Label(skillsText.toString());
+            skillsLabel.setFont(Font.font("System", 14));
+            skillsLabel.setTextFill(Color.WHITE);
+            
+            // Add description
+            Label descriptionLabel = new Label(currentObstacle.getDescription());
+            descriptionLabel.setFont(Font.font("System", 14));
+            descriptionLabel.setTextFill(Color.WHITE);
+            descriptionLabel.setWrapText(true);
+            descriptionLabel.setMaxWidth(500);
+            
+            // Add progress bar
+            ProgressBar progressBar = new ProgressBar(0);
+            progressBar.setPrefWidth(300);
+            progressBar.setStyle("-fx-accent: #4287f5;");
+            
+            // Calculate progress
+            int totalProgress = 0;
+            
+            // Calculate current progress from played cards
+            for (Map.Entry<Player, Card> entry : playedCards.entrySet()) {
+                Player player = entry.getKey();
+                Card card = entry.getValue();
+                
+                if (card != null && card.isCompatibleWithType(currentObstacle.getType())) {
+                    String cardStat = card.getStat().toLowerCase();
+                    for (String requiredSkill : currentObstacle.getRequiredSkills()) {
+                        if (cardStat.equals(requiredSkill.toLowerCase())) {
+                            switch (cardStat) {
+                                case "strength":
+                                    totalProgress += player.getSelectedCharacter().getStrength();
+                                    break;
+                                case "speed":
+                                    totalProgress += player.getSelectedCharacter().getSpeed();
+                                    break;
+                                case "tech":
+                                    totalProgress += player.getSelectedCharacter().getTech();
+                                    break;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Set progress bar value (clamped between 0 and 1)
+            double progress = Math.min(1.0, (double) totalProgress / currentObstacle.getDifficulty());
+            progressBar.setProgress(progress);
+            
+            // Add progress label
+            Label progressLabel = new Label("Progress: " + totalProgress + " / " + currentObstacle.getDifficulty());
+            progressLabel.setFont(Font.font("System", 14));
+            progressLabel.setTextFill(Color.WHITE);
+            
+            obstacleBox.getChildren().addAll(nameLabel, difficultyLabel, typeLabel, skillsLabel, descriptionLabel, progressBar, progressLabel);
         }
-        
-        // Set progress bar value (clamped between 0 and 1)
-        double progress = Math.min(1.0, (double) totalProgress / currentObstacle.getDifficulty());
-        progressBar.setProgress(progress);
-        
-        // Add progress label
-        Label progressLabel = new Label("Progress: " + totalProgress + " / " + currentObstacle.getDifficulty());
-        progressLabel.setFont(Font.font("System", 14));
-        progressLabel.setTextFill(Color.WHITE);
-        
-        obstacleBox.getChildren().addAll(nameLabel, difficultyLabel, typeLabel, skillsLabel, descriptionLabel, progressBar, progressLabel);
         
         // Add played cards section
         VBox playedCardsBox = new VBox(5);
@@ -1428,21 +1516,27 @@ public class GameScreen {
      * Handles a player playing a card.
      */
     private void playCard(Player player, Card card) {
-        if (currentPlayerIndex != players.indexOf(player)) {
-            return; // Not this player's turn
+        // Check if player is allowed to play cards (must be their turn)
+        if (players.indexOf(player) != currentPlayerIndex) {
+            System.out.println("Not " + player.getName() + "'s turn!");
+            return;
         }
         
-        // Play the card
+        // Check if card is compatible with current obstacle type
+        boolean isCompatible = currentObstacle.isFinale() || card.isCompatibleWithType(currentObstacle.getType());
+        
+        // Even if not compatible, still allow playing, but warn the player
+        if (!isCompatible) {
+            System.out.println("Warning: " + card.getName() + " is not compatible with " + 
+                               currentObstacle.getType() + " obstacles!");
+        }
+        
+        // Move card from hand to played cards
         player.getDeck().playCard(card);
         playedCards.put(player, card);
         
-        // Draw a new card to maintain 3 cards in hand if possible
-        if (player.getDeck().getHand().size() < 3) {
-            player.getDeck().drawCard();
-        }
-        
-        // Update the display to show deck and discard pile changes
-        updatePlayerUI(player);
+        // Update the display
+        updatePlayedCardDisplay(player, card);
         
         // Move to next player
         advanceToNextPlayer();
@@ -1508,100 +1602,247 @@ public class GameScreen {
         String[] requiredSkills = currentObstacle.getRequiredSkills();
         StringBuilder skillBreakdown = new StringBuilder();
         
-        // For each player who played a card, check if the card type matches a required skill
-        for (Map.Entry<Player, Card> entry : playedCards.entrySet()) {
-            Player player = entry.getKey();
-            Card card = entry.getValue();
-            Character character = player.getSelectedCharacter();
+        // Special handling for finale obstacle
+        if (currentObstacle.isFinale()) {
+            int totalEnvironment = 0;
+            int totalHazard = 0;
+            int totalBarrier = 0;
             
-            if (card != null) {
-                // Check if the card is compatible with the obstacle type
-                boolean isCompatible = card.isCompatibleWithType(currentObstacle.getType());
+            // For each player who played a card, collect stats for each category
+            for (Map.Entry<Player, Card> entry : playedCards.entrySet()) {
+                Player player = entry.getKey();
+                Card card = entry.getValue();
+                Character character = player.getSelectedCharacter();
                 
-                // If card is not compatible with obstacle type, it contributes nothing
-                if (!isCompatible) {
-                    skillBreakdown.append(player.getName()).append(": ").append(card.getName())
-                        .append(" (0 - INCOMPATIBLE: Not usable against ").append(currentObstacle.getType()).append(")\n");
-                    continue; // Skip to next player
-                }
-                
-                // Check if the card type matches a required skill
-                String cardStat = card.getStat().toLowerCase();
-                boolean matchesSkill = false;
-                
-                for (String skill : requiredSkills) {
-                    if (cardStat.equals(skill.toLowerCase())) {
-                        matchesSkill = true;
-                        break;
-                    }
-                }
-                
-                int contributedSkill = 0;
-                
-                if (matchesSkill) {
-                    // Card type matches a required skill
-                    switch (cardStat) {
-                        case "strength":
-                            contributedSkill = character.getStrength();
-                            break;
-                        case "speed":
-                            contributedSkill = character.getSpeed();
-                            break;
-                        case "tech":
-                            contributedSkill = character.getTech();
-                            break;
-                        default:
-                            // Default to strength for any other type
-                            contributedSkill = character.getStrength();
-                            break;
+                if (card != null) {
+                    // For finale, check each of the card's compatible types
+                    // Get the value based on the player's skill
+                    int contribution = currentObstacle.getCardContribution(card, player);
+                    boolean contributed = false;
+                    
+                    // Check which obstacle types this card can address
+                    for (String cardType : card.getCompatibleTypes()) {
+                        if ("environment".equalsIgnoreCase(cardType)) {
+                            totalEnvironment += contribution;
+                            contributed = true;
+                        } else if ("hazard".equalsIgnoreCase(cardType)) {
+                            totalHazard += contribution;
+                            contributed = true;
+                        } else if ("barrier".equalsIgnoreCase(cardType)) {
+                            totalBarrier += contribution;
+                            contributed = true;
+                        }
                     }
                     
-                    skillBreakdown.append(player.getName()).append(": ").append(card.getName())
-                        .append(" (").append(cardStat).append(" ").append(contributedSkill).append(")\n");
+                    if (contributed) {
+                        skillBreakdown.append(player.getName()).append(": ").append(card.getName())
+                            .append(" (").append(card.getStat()).append(" ").append(contribution).append(") - ");
+                        
+                        StringBuilder typesList = new StringBuilder();
+                        for (String cardType : card.getCompatibleTypes()) {
+                            if ("environment".equalsIgnoreCase(cardType) || 
+                                "hazard".equalsIgnoreCase(cardType) || 
+                                "barrier".equalsIgnoreCase(cardType)) {
+                                if (typesList.length() > 0) {
+                                    typesList.append(", ");
+                                }
+                                typesList.append(cardType);
+                            }
+                        }
+                        
+                        skillBreakdown.append("Types: ").append(typesList).append("\n");
+                    } else {
+                        skillBreakdown.append(player.getName()).append(": ").append(card.getName())
+                            .append(" (").append(card.getStat()).append(" ").append(contribution)
+                            .append(") - No compatible obstacle types\n");
+                    }
                 } else {
-                    // Card doesn't match a required skill, contributes base value of 1
-                    contributedSkill = 1;
-                    skillBreakdown.append(player.getName()).append(": ").append(card.getName())
-                        .append(" (Non-matching - base value 1)\n");
+                    // Player skipped
+                    skillBreakdown.append(player.getName()).append(": Skipped (0)\n");
+                }
+            }
+            
+            // Calculate if each required obstacle type threshold was met
+            boolean environmentMet = totalEnvironment >= currentObstacle.getEnvironmentRequired();
+            boolean hazardMet = totalHazard >= currentObstacle.getHazardRequired();
+            boolean barrierMet = totalBarrier >= currentObstacle.getBarrierRequired();
+            
+            // All thresholds must be met to succeed
+            boolean succeeded = environmentMet && hazardMet && barrierMet;
+            
+            // Show skill breakdown for finale
+            skillBreakdown.append("\nEnvironment: ").append(totalEnvironment).append("/").append(currentObstacle.getEnvironmentRequired())
+                .append(environmentMet ? " ✓" : " ✗").append("\n");
+            skillBreakdown.append("Hazard: ").append(totalHazard).append("/").append(currentObstacle.getHazardRequired())
+                .append(hazardMet ? " ✓" : " ✗").append("\n");
+            skillBreakdown.append("Barrier: ").append(totalBarrier).append("/").append(currentObstacle.getBarrierRequired())
+                .append(barrierMet ? " ✓" : " ✗").append("\n");
+            
+            // Add obstacle to history
+            obstacleHistory.add(new ObstacleResult(currentObstacle, succeeded));
+            updateHistoryBar();
+            
+            if (succeeded) {
+                // Success! Players overcome the finale
+                obstacleDeck.defeatObstacle(currentObstacle);
+                
+                // Add a random card to each player as a reward for the finale
+                for (Player player : players) {
+                    addRandomCardToPlayer(player);
                 }
                 
-                totalSkill += contributedSkill;
+                showObstacleResult("SUCCESS! NUCLEAR CORE STABILIZED", 
+                                 "The team has successfully stabilized the nuclear core and saved the station!\n\n" +
+                                 skillBreakdown.toString(),
+                                 true);
             } else {
-                // Player skipped
-                skillBreakdown.append(player.getName()).append(": Skipped (0)\n");
+                // Failure - players take damage based on how many requirements weren't met
+                int unmetRequirements = 0;
+                if (!environmentMet) unmetRequirements++;
+                if (!hazardMet) unmetRequirements++;
+                if (!barrierMet) unmetRequirements++;
+                
+                int damage = unmetRequirements * 2; // 2 damage per unmet requirement
+                distributeAndApplyDamage(damage);
+                
+                showObstacleResult("FAILURE! NUCLEAR CORE CRITICAL", 
+                                 "The team failed to stabilize the nuclear core!\n" +
+                                 "Players Take " + damage + " Damage for unmet requirements.\n\n" +
+                                 skillBreakdown.toString(),
+                                 false);
+            }
+        } else {
+            // Regular obstacle resolution
+            // For each player who played a card, check if the card type matches a required skill
+            for (Map.Entry<Player, Card> entry : playedCards.entrySet()) {
+                Player player = entry.getKey();
+                Card card = entry.getValue();
+                Character character = player.getSelectedCharacter();
+                
+                if (card != null) {
+                    // Check if the card is compatible with the obstacle type
+                    boolean isCompatible = card.isCompatibleWithType(currentObstacle.getType());
+                    
+                    // If card is not compatible with obstacle type, it contributes nothing
+                    if (!isCompatible) {
+                        skillBreakdown.append(player.getName()).append(": ").append(card.getName())
+                            .append(" (0 - INCOMPATIBLE: Not usable against ").append(currentObstacle.getType()).append(")\n");
+                        continue; // Skip to next player
+                    }
+                    
+                    // Check if the card type matches a required skill
+                    String cardStat = card.getStat().toLowerCase();
+                    boolean matchesSkill = false;
+                    
+                    for (String skill : requiredSkills) {
+                        if (cardStat.equals(skill.toLowerCase())) {
+                            matchesSkill = true;
+                            break;
+                        }
+                    }
+                    
+                    int contributedSkill = 0;
+                    
+                    if (matchesSkill) {
+                        // Card type matches a required skill
+                        switch (cardStat) {
+                            case "strength":
+                                contributedSkill = character.getStrength();
+                                break;
+                            case "speed":
+                                contributedSkill = character.getSpeed();
+                                break;
+                            case "tech":
+                                contributedSkill = character.getTech();
+                                break;
+                            default:
+                                // Default to strength for any other type
+                                contributedSkill = character.getStrength();
+                                break;
+                        }
+                        
+                        skillBreakdown.append(player.getName()).append(": ").append(card.getName())
+                            .append(" (").append(cardStat).append(" ").append(contributedSkill).append(")\n");
+                    } else {
+                        // Card doesn't match a required skill, contributes base value of 1
+                        contributedSkill = 1;
+                        skillBreakdown.append(player.getName()).append(": ").append(card.getName())
+                            .append(" (Non-matching - base value 1)\n");
+                    }
+                    
+                    totalSkill += contributedSkill;
+                } else {
+                    // Player skipped
+                    skillBreakdown.append(player.getName()).append(": Skipped (0)\n");
+                }
+            }
+            
+            // Compare total skill to obstacle difficulty
+            int obstacleDifficulty = currentObstacle.getDifficulty();
+            boolean succeeded = totalSkill >= obstacleDifficulty;
+            
+            // Add obstacle to history
+            obstacleHistory.add(new ObstacleResult(currentObstacle, succeeded));
+            updateHistoryBar();
+            
+            if (succeeded) {
+                // Success! Players overcome the obstacle
+                obstacleDeck.defeatObstacle(currentObstacle);
+                
+                // Add a random card to a random player's deck as reward for success
+                addRandomCardToRandomPlayer();
+                
+                showObstacleResult("Success! Obstacle Overcome", 
+                                "Total Skill: " + totalSkill + " vs. Difficulty: " + obstacleDifficulty + "\n\n" +
+                                skillBreakdown.toString(),
+                                true);
+            } else {
+                // Failure - players take damage
+                int damage = obstacleDifficulty - totalSkill;
+                distributeAndApplyDamage(damage);
+                
+                showObstacleResult("Failure! Obstacle Not Overcome", 
+                                "Total Skill: " + totalSkill + " vs. Difficulty: " + obstacleDifficulty + 
+                                "\nPlayers Take " + damage + " Damage\n\n" +
+                                skillBreakdown.toString(),
+                                false);
             }
         }
-        
-        // Compare total skill to obstacle difficulty
-        int obstacleDifficulty = currentObstacle.getDifficulty();
-        boolean succeeded = totalSkill >= obstacleDifficulty;
-        
-        // Add obstacle to history
-        obstacleHistory.add(new ObstacleResult(currentObstacle, succeeded));
-        updateHistoryBar();
-        
-        if (succeeded) {
-            // Success! Players overcome the obstacle
-            obstacleDeck.defeatObstacle(currentObstacle);
-            
-            // Add a random card to a random player's deck as reward for success
-            addRandomCardToRandomPlayer();
-            
-            showObstacleResult("Success! Obstacle Overcome", 
-                              "Total Skill: " + totalSkill + " vs. Difficulty: " + obstacleDifficulty + "\n\n" +
-                              skillBreakdown.toString(),
-                              true);
-        } else {
-            // Failure - players take damage
-            int damage = obstacleDifficulty - totalSkill;
-            distributeAndApplyDamage(damage);
-            
-            showObstacleResult("Failure! Obstacle Not Overcome", 
-                              "Total Skill: " + totalSkill + " vs. Difficulty: " + obstacleDifficulty + 
-                              "\nPlayers Take " + damage + " Damage\n\n" +
-                              skillBreakdown.toString(),
-                              false);
+    }
+    
+    /**
+     * Adds a random card to a specific player's deck.
+     * Called as a reward for the finale.
+     */
+    private void addRandomCardToPlayer(Player player) {
+        // Get all available cards
+        Map<String, Card> allCards = cardService.getAllCards();
+        if (allCards.isEmpty()) {
+            return;
         }
+        
+        // Convert to list to be able to get a random card
+        List<Card> cardList = new ArrayList<>(allCards.values());
+        int randomCardIndex = (int) (Math.random() * cardList.size());
+        Card randomCard = cardList.get(randomCardIndex);
+        
+        // Add a copy of the card to the player's deck
+        Card newCard = new Card(
+            randomCard.getId(),
+            randomCard.getName(),
+            randomCard.getDescription(),
+            randomCard.getStat(),
+            randomCard.getCompatibleTypes()
+        );
+        
+        // Add to player's deck (cards collection) and discard pile rather than draw pile
+        player.getDeck().addCardToDiscard(newCard);
+        
+        // Display message about the new card
+        System.out.println("New card awarded to " + player.getName() + ": " + newCard.getName() + " (added to discard pile)");
+        
+        // Update UI to reflect the new card in the deck
+        updatePlayerUI(player);
     }
     
     /**
