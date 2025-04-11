@@ -32,6 +32,7 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import javafx.scene.control.ProgressBar;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -1045,7 +1046,48 @@ public class GameScreen {
         descriptionLabel.setWrapText(true);
         descriptionLabel.setMaxWidth(300);
         
-        obstacleBox.getChildren().addAll(nameLabel, difficultyLabel, typeLabel, skillsLabel, descriptionLabel);
+        // Add progress bar for obstacle difficulty
+        ProgressBar progressBar = new ProgressBar(0);
+        progressBar.setMaxWidth(300);
+        progressBar.setPrefHeight(20);
+        progressBar.setStyle("-fx-accent: #4CAF50;"); // Green color for progress
+        
+        // Calculate current progress from played cards
+        int totalProgress = 0;
+        for (Map.Entry<Player, Card> entry : playedCards.entrySet()) {
+            Player player = entry.getKey();
+            Card card = entry.getValue();
+            
+            if (card != null && card.isCompatibleWithType(currentObstacle.getType())) {
+                String cardStat = card.getStat().toLowerCase();
+                for (String requiredSkill : currentObstacle.getRequiredSkills()) {
+                    if (cardStat.equals(requiredSkill.toLowerCase())) {
+                        switch (cardStat) {
+                            case "strength":
+                                totalProgress += player.getSelectedCharacter().getStrength();
+                                break;
+                            case "speed":
+                                totalProgress += player.getSelectedCharacter().getSpeed();
+                                break;
+                            case "tech":
+                                totalProgress += player.getSelectedCharacter().getTech();
+                                break;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Set progress bar value (clamped between 0 and 1)
+        double progress = Math.min(1.0, (double) totalProgress / currentObstacle.getDifficulty());
+        progressBar.setProgress(progress);
+        
+        // Add progress label
+        Label progressLabel = new Label("Progress: " + totalProgress + " / " + currentObstacle.getDifficulty());
+        progressLabel.setFont(Font.font("System", 14));
+        progressLabel.setTextFill(Color.WHITE);
+        
+        obstacleBox.getChildren().addAll(nameLabel, difficultyLabel, typeLabel, skillsLabel, descriptionLabel, progressBar, progressLabel);
         
         // Add played cards section
         VBox playedCardsBox = new VBox(5);
