@@ -90,29 +90,51 @@ public class ObstacleService {
     public ObstacleDeck createObstacleDeck() {
         ObstacleDeck deck = new ObstacleDeck();
         
-        // Get all obstacle cards
-        List<ObstacleCard> allCards = new ArrayList<>(obstacleCards.values());
-        
-        // Get deck size from config
-        int deckSize = configService.getObstacleDeckSize();
-        
-        // If deckSize is less than total cards, randomly select cards
-        if (deckSize < allCards.size()) {
-            // Shuffle the list to get random selection
-            Collections.shuffle(allCards);
-            // Take the first 'deckSize' cards
-            allCards = allCards.subList(0, deckSize);
+        // Find the finale card (nuclear core)
+        ObstacleCard finaleCard = null;
+        for (ObstacleCard card : obstacleCards.values()) {
+            if (card.isFinale()) {
+                finaleCard = card;
+                break;
+            }
         }
         
-        // Add selected cards to the deck
-        for (ObstacleCard card : allCards) {
+        // Get all obstacle cards except the finale
+        List<ObstacleCard> regularCards = new ArrayList<>();
+        for (ObstacleCard card : obstacleCards.values()) {
+            if (!card.isFinale()) {
+                regularCards.add(card);
+            }
+        }
+        
+        // Get deck size from config (minus 1 for the finale card)
+        int deckSize = configService.getObstacleDeckSize() - 1;
+        
+        // If deckSize is less than total regular cards, randomly select cards
+        if (deckSize < regularCards.size()) {
+            // Shuffle the list to get random selection
+            Collections.shuffle(regularCards);
+            // Take the first 'deckSize' cards
+            regularCards = regularCards.subList(0, deckSize);
+        }
+        
+        // Shuffle regular cards if configured to do so
+        if (configService.shouldShuffleObstacleDeck()) {
+            Collections.shuffle(regularCards);
+        }
+        
+        // Add regular cards to the deck
+        for (ObstacleCard card : regularCards) {
             deck.addCard(card);
         }
         
-        // Shuffle only if configured to do so
-        if (configService.shouldShuffleObstacleDeck()) {
-            deck.shuffle();
+        // Add the finale card as the last obstacle if it exists
+        if (finaleCard != null) {
+            deck.addCard(finaleCard);
         }
+        
+        System.out.println("Created deck with " + deck.getAllCards().size() + " cards" + 
+                          (finaleCard != null ? " (including finale: " + finaleCard.getName() + ")" : ""));
         
         return deck;
     }
@@ -126,16 +148,25 @@ public class ObstacleService {
     public ObstacleDeck createObstacleDeck(int difficulty) {
         ObstacleDeck deck = new ObstacleDeck();
         
-        // Get all obstacle cards that match the difficulty level or lower
+        // Find the finale card (nuclear core)
+        ObstacleCard finaleCard = null;
+        for (ObstacleCard card : obstacleCards.values()) {
+            if (card.isFinale()) {
+                finaleCard = card;
+                break;
+            }
+        }
+        
+        // Get all obstacle cards that match the difficulty level or lower, except the finale
         List<ObstacleCard> matchingCards = new ArrayList<>();
         for (ObstacleCard card : obstacleCards.values()) {
-            if (card.getDifficulty() <= difficulty) {
+            if (!card.isFinale() && card.getDifficulty() <= difficulty) {
                 matchingCards.add(card);
             }
         }
         
-        // Get deck size from config
-        int deckSize = configService.getObstacleDeckSize();
+        // Get deck size from config (minus 1 for the finale card)
+        int deckSize = configService.getObstacleDeckSize() - 1;
         
         // If deckSize is less than matching cards, randomly select cards
         if (deckSize < matchingCards.size()) {
@@ -145,15 +176,23 @@ public class ObstacleService {
             matchingCards = matchingCards.subList(0, deckSize);
         }
         
-        // Add selected cards to the deck
+        // Shuffle matching cards if configured to do so
+        if (configService.shouldShuffleObstacleDeck()) {
+            Collections.shuffle(matchingCards);
+        }
+        
+        // Add matching cards to the deck
         for (ObstacleCard card : matchingCards) {
             deck.addCard(card);
         }
         
-        // Shuffle only if configured to do so
-        if (configService.shouldShuffleObstacleDeck()) {
-            deck.shuffle();
+        // Add the finale card as the last obstacle if it exists
+        if (finaleCard != null) {
+            deck.addCard(finaleCard);
         }
+        
+        System.out.println("Created difficulty-filtered deck with " + deck.getAllCards().size() + " cards" + 
+                          (finaleCard != null ? " (including finale: " + finaleCard.getName() + ")" : ""));
         
         return deck;
     }

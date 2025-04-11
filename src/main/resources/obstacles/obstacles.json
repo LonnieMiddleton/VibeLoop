@@ -82,5 +82,13 @@
     "difficulty": 6,
     "requiredSkills": ["tech"],
     "type": "environment"
+  },
+  "nuclear_core": {
+    "name": "Unstable Nuclear Core",
+    "description": "The station's nuclear core is destabilizing and must be repaired before it reaches critical meltdown.",
+    "difficulty": 15,
+    "requiredSkills": ["tech", "strength", "speed"],
+    "type": "finale",
+    "isFinale": true
   }
 } 

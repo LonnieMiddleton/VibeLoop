@@ -11,6 +11,7 @@ public class ObstacleCard {
     private String[] requiredSkills;
     private String type;
     private String imagePath;
+    private boolean isFinale;
     
     public ObstacleCard(String id, String name, String description, int difficulty, 
                       String[] requiredSkills, String type) {
@@ -21,6 +22,7 @@ public class ObstacleCard {
         this.requiredSkills = requiredSkills;
         this.type = type;
         this.imagePath = "/obstacles/" + id + ".jpg";
+        this.isFinale = "finale".equals(type);
     }
     
     public String getId() {
@@ -49,6 +51,10 @@ public class ObstacleCard {
     
     public String getImagePath() {
         return imagePath;
+    }
+    
+    public boolean isFinale() {
+        return isFinale;
     }
     
     @Override

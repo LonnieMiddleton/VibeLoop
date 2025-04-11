@@ -34,6 +34,7 @@ import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.effect.DropShadow;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -1024,46 +1025,74 @@ public class GameScreen {
         // Update history bar
         updateHistoryBar();
         
+        // Check if this is the finale obstacle
+        boolean isFinale = currentObstacle.isFinale();
+        
         // Obstacle title
-        Label titleLabel = new Label("Current Obstacle");
-        titleLabel.setFont(Font.font("System", FontWeight.BOLD, 20));
-        titleLabel.setTextFill(Color.WHITE);
+        Label titleLabel = new Label(isFinale ? "FINAL OBSTACLE" : "Current Obstacle");
+        titleLabel.setFont(Font.font("System", FontWeight.BOLD, isFinale ? 24 : 20));
+        titleLabel.setTextFill(isFinale ? Color.RED : Color.WHITE);
         
         // Obstacle card display
         VBox obstacleBox = new VBox(10);
         obstacleBox.setAlignment(Pos.CENTER);
         obstacleBox.setPadding(new Insets(10));
-        obstacleBox.setStyle("-fx-background-color: #2d4b6e; -fx-background-radius: 8;");
+        
+        // Use special styling for finale
+        if (isFinale) {
+            obstacleBox.setStyle("-fx-background-color: #4a0000; -fx-background-radius: 8; -fx-border-color: #ff0000; -fx-border-width: 3; -fx-border-radius: 8;");
+        } else {
+            obstacleBox.setStyle("-fx-background-color: #2d4b6e; -fx-background-radius: 8;");
+        }
         
         // Obstacle image
         ImageView obstacleImage;
         try {
             Image image = new Image(getClass().getResourceAsStream(currentObstacle.getImagePath()));
             obstacleImage = new ImageView(image);
-            obstacleImage.setFitWidth(CARD_WIDTH * 2);
-            obstacleImage.setFitHeight(CARD_HEIGHT * 2);
+            
+            // Make finale image larger
+            if (isFinale) {
+                obstacleImage.setFitWidth(CARD_WIDTH * 3);
+                obstacleImage.setFitHeight(CARD_HEIGHT * 3);
+                
+                // Add a glow effect to the finale image
+                DropShadow glow = new DropShadow();
+                glow.setColor(Color.RED);
+                glow.setWidth(20);
+                glow.setHeight(20);
+                glow.setRadius(10);
+                obstacleImage.setEffect(glow);
+            } else {
+                obstacleImage.setFitWidth(CARD_WIDTH * 2);
+                obstacleImage.setFitHeight(CARD_HEIGHT * 2);
+            }
+            
             obstacleBox.getChildren().add(obstacleImage);
         } catch (Exception e) {
             // If image can't be loaded, use a placeholder
-            Rectangle placeholder = new Rectangle(CARD_WIDTH * 2, CARD_HEIGHT * 2);
-            placeholder.setFill(Color.GRAY.deriveColor(0, 1, 1, 0.3));
-            placeholder.setStroke(Color.WHITE);
+            Rectangle placeholder = new Rectangle(
+                isFinale ? CARD_WIDTH * 3 : CARD_WIDTH * 2, 
+                isFinale ? CARD_HEIGHT * 3 : CARD_HEIGHT * 2
+            );
+            placeholder.setFill(isFinale ? Color.RED.deriveColor(0, 1, 1, 0.3) : Color.GRAY.deriveColor(0, 1, 1, 0.3));
+            placeholder.setStroke(isFinale ? Color.RED : Color.WHITE);
             obstacleBox.getChildren().add(placeholder);
             System.err.println("Error loading obstacle image: " + e.getMessage());
         }
         
         // Obstacle details
         Label nameLabel = new Label(currentObstacle.getName());
-        nameLabel.setFont(Font.font("System", FontWeight.BOLD, 16));
-        nameLabel.setTextFill(Color.WHITE);
+        nameLabel.setFont(Font.font("System", FontWeight.BOLD, isFinale ? 20 : 16));
+        nameLabel.setTextFill(isFinale ? Color.RED : Color.WHITE);
         
         Label difficultyLabel = new Label("Difficulty: " + currentObstacle.getDifficulty());
-        difficultyLabel.setFont(Font.font("System", 14));
-        difficultyLabel.setTextFill(Color.WHITE);
+        difficultyLabel.setFont(Font.font("System", isFinale ? 16 : 14));
+        difficultyLabel.setTextFill(isFinale ? Color.ORANGE : Color.WHITE);
         
         // Add obstacle type with a color based on the type
         Label typeLabel = new Label("Type: " + currentObstacle.getType());
-        typeLabel.setFont(Font.font("System", 14));
+        typeLabel.setFont(Font.font("System", isFinale ? 16 : 14));
         
         // Set color based on type
         String type = currentObstacle.getType().toLowerCase();
@@ -1080,29 +1109,43 @@ public class GameScreen {
             case "personnel":
                 typeLabel.setTextFill(Color.LIGHTGREEN);
                 break;
+            case "finale":
+                typeLabel.setTextFill(Color.RED);
+                break;
             default:
                 typeLabel.setTextFill(Color.WHITE);
-                break;
         }
         
-        Label skillsLabel = new Label("Required Skills: " + String.join(", ", currentObstacle.getRequiredSkills()));
-        skillsLabel.setFont(Font.font("System", 14));
-        skillsLabel.setTextFill(Color.WHITE);
+        // Add required skills
+        String[] requiredSkills = currentObstacle.getRequiredSkills();
+        StringBuilder skillsText = new StringBuilder("Required Skills: ");
+        for (int i = 0; i < requiredSkills.length; i++) {
+            skillsText.append(requiredSkills[i]);
+            if (i < requiredSkills.length - 1) {
+                skillsText.append(", ");
+            }
+        }
         
+        Label skillsLabel = new Label(skillsText.toString());
+        skillsLabel.setFont(Font.font("System", isFinale ? 16 : 14));
+        skillsLabel.setTextFill(isFinale ? Color.LIGHTYELLOW : Color.WHITE);
+        
+        // Add description
         Label descriptionLabel = new Label(currentObstacle.getDescription());
-        descriptionLabel.setFont(Font.font("System", 14));
+        descriptionLabel.setFont(Font.font("System", isFinale ? 16 : 14));
         descriptionLabel.setTextFill(Color.WHITE);
         descriptionLabel.setWrapText(true);
-        descriptionLabel.setMaxWidth(300);
+        descriptionLabel.setMaxWidth(500);
         
-        // Add progress bar for obstacle difficulty
+        // Add progress bar
         ProgressBar progressBar = new ProgressBar(0);
-        progressBar.setMaxWidth(300);
-        progressBar.setPrefHeight(20);
-        progressBar.setStyle("-fx-accent: #4CAF50;"); // Green color for progress
+        progressBar.setPrefWidth(300);
+        progressBar.setStyle(isFinale ? "-fx-accent: red;" : "-fx-accent: #4287f5;");
+        
+        // Calculate progress
+        int totalProgress = 0;
         
         // Calculate current progress from played cards
-        int totalProgress = 0;
         for (Map.Entry<Player, Card> entry : playedCards.entrySet()) {
             Player player = entry.getKey();
             Card card = entry.getValue();
